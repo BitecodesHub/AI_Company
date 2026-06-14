@@ -22,7 +22,7 @@ WORKDIR /app
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
-# ── build: install the full workspace, copy source, build the web app ─────────
+# ── build: install the full workspace, copy source, build API + web ──────────
 FROM base AS build
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
@@ -39,6 +39,7 @@ COPY packages/ui/package.json ./packages/ui/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production
+RUN pnpm --filter @bitecodes/api build
 RUN pnpm --filter @bitecodes/web build
 
 # ── runtime: one image, role chosen by $SERVICE (default app = API + web) ─────

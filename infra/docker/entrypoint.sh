@@ -24,7 +24,7 @@ case "${SERVICE:-app}" in
     ;;
   api)
     echo "[entrypoint] starting API on :${PORT:-4000}…"
-    exec node --import tsx apps/api/src/main.ts
+    exec node -r ./infra/docker/api-dist-paths.cjs apps/api/dist/apps/api/src/main.js
     ;;
   web)
     echo "[entrypoint] starting web on :${PORT:-3000}…"
@@ -34,7 +34,7 @@ case "${SERVICE:-app}" in
     # Combined: API must listen on 4000 (the web build's baked proxy target);
     # web serves the public $PORT and proxies /v1, /api/auth, /socket.io to it.
     echo "[entrypoint] app: starting API (:4000) + web (:${PORT:-3000})…"
-    PORT=4000 node --import tsx apps/api/src/main.ts &
+    PORT=4000 node -r ./infra/docker/api-dist-paths.cjs apps/api/dist/apps/api/src/main.js &
     api_pid=$!
     pnpm --filter @bitecodes/web exec next start -p "${PORT:-3000}" -H 0.0.0.0 &
     web_pid=$!

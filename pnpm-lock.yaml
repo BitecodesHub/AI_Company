@@ -38,6 +38,15 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 3.726.0
         version: 3.726.0
+      '@bitecodes/ai-controller':
+        specifier: workspace:*
+        version: link:../../packages/ai-controller
+      '@bitecodes/ai-core':
+        specifier: workspace:*
+        version: link:../../packages/ai-core
+      '@bitecodes/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@bitecodes/shared':
         specifier: workspace:*
         version: link:../../packages/shared
