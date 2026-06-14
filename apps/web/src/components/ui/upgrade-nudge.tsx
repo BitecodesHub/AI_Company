@@ -7,7 +7,7 @@
  *
  * Plan is read from useMe().org (best-effort); unknown/free plans are gated.
  */
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Lock, Sparkles } from 'lucide-react';
 import { useMe } from '../../hooks/use-me';
 

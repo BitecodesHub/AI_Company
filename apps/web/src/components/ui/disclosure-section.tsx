@@ -8,7 +8,8 @@
  *   level: 'essential' always shown · 'advanced' collapsed by default ·
  *          'expert' collapsed and labelled, for power users.
  */
-import { ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { ChevronDown, Sparkles } from 'lucide-react';
 
 export function DisclosureSection({

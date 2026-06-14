@@ -1,6 +1,6 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, Play, Settings, History, BookOpen } from 'lucide-react';
+import { ArrowLeft, Play, Settings } from 'lucide-react';
 import { ControlPanel } from '../../../../../src/components/employee/control-panel';
 import { OrgGraph } from '../../../../../src/components/employee/org-graph';
 

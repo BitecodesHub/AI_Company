@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Plus, Sparkles, Calendar, Kanban } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Content' };

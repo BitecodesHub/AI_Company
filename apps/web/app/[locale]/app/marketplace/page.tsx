@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Store, Star, Download } from 'lucide-react';
+import { Star, Download } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Marketplace' };
 

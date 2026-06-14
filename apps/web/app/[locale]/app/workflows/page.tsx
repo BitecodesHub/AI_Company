@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GitBranch, Plus, Play } from 'lucide-react';
+import { GitBranch, Plus } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Workflows' };
 

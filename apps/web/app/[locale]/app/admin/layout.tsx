@@ -5,7 +5,7 @@
  * Advanced/org-level settings live here, gated to admins/owners. The client gate
  * is cosmetic; every /v1/admin and /v1/members mutation is enforced server-side.
  */
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { Users, Mail, Building2, SlidersHorizontal, ShieldAlert, Activity } from 'lucide-react';

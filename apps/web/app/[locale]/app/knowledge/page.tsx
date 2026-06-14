@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { BookOpen, Plus, Upload, Globe } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Knowledge Base' };

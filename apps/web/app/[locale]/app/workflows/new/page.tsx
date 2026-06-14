@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { ArrowLeft, GitBranch, Plus } from 'lucide-react';
-import { Metadata } from 'next';
+import { ArrowLeft, GitBranch } from 'lucide-react';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'New Workflow' };
 

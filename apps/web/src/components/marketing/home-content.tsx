@@ -5,7 +5,7 @@
  * filler), smooth scroll-reveal via framer-motion (reduced-motion aware), and a
  * "meet your team" section driven by the same role templates the product hires.
  */
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
