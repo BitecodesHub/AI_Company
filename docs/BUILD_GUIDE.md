@@ -152,6 +152,7 @@ Every variable the system reads at boot. Security-critical variables (marked **e
 | `NODE_ENV` | `development` or `production` | |
 | `APP_URL` | Public base URL of the web app | e.g. http://localhost:3000 |
 | `API_URL` | Base URL of the API | e.g. http://localhost:4000 |
+| _(no API URL for the browser)_ | The web app calls same-origin relative paths; the combined `app` image proxies `/v1`, `/api/auth`, `/socket.io` to the co-located API at `localhost:4000` | nothing to set per environment |
 | `NEXT_PUBLIC_APP_URL` | Browser-visible app URL | exposed to the client |
 | `NEXT_PUBLIC_BRAND_NAME` | White-label product/wordmark name | exposed to the client; default `Bitecodes` |
 | `NEXT_PUBLIC_BRAND_PRIMARY_HSL` | Brand primary colour as bare HSL channels (`H S% L%`) | exposed to the client; default `221 83% 53%` |

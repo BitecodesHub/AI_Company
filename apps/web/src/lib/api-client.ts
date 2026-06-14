@@ -1,13 +1,12 @@
 /**
  * Typed API client for the Bitecodes REST API.
  *
- * The browser calls the NestJS API directly at NEXT_PUBLIC_API_URL (:4000).
- * The Better Auth session cookie is sent via credentials:'include'.
+ * The browser calls same-origin relative paths (/v1/*); the Next.js server
+ * proxies them to the API (see next.config.ts rewrites), so no API URL is baked
+ * into the client bundle. The Better Auth session cookie rides credentials:'include'.
  * The TenantGuard resolves the user's default workspace automatically;
  * pass workspaceId in RequestOptions to switch workspaces.
  */
-
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
 
 export class ApiError extends Error {
   constructor(
@@ -41,7 +40,7 @@ async function request<T>(
   if (body != null) init.body = JSON.stringify(body);
   if (opts.signal) init.signal = opts.signal;
 
-  const res = await fetch(`${API_URL}${path}`, init);
+  const res = await fetch(path, init);
 
   if (res.status === 204) return undefined as T;
 

@@ -98,7 +98,7 @@ export default function ConnectorsPage() {
               {isConnected ? (
                 <button
                   type="button"
-                  onClick={() => disconnect.mutate(live!.id)}
+                  onClick={() => live && disconnect.mutate(live.id)}
                   disabled={disconnect.isPending}
                   className="mt-4 w-full flex items-center justify-center gap-2 border border-border rounded-xl py-2 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
                 >

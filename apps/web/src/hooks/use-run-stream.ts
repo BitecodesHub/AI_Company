@@ -10,8 +10,6 @@
 import { useEffect, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
-
 export function useRunStream(workspaceId: string | undefined, onEvent: () => void) {
   const cb = useRef(onEvent);
   cb.current = onEvent;
@@ -20,7 +18,9 @@ export function useRunStream(workspaceId: string | undefined, onEvent: () => voi
     if (!workspaceId) return;
     let socket: Socket | null = null;
     try {
-      socket = io(`${API_URL}/runs`, { withCredentials: true, transports: ['websocket', 'polling'] });
+      // Same-origin; the Next.js server proxies /socket.io to the API. Polling
+      // transport because Next rewrites proxy HTTP, not raw WebSocket upgrades.
+      socket = io('/runs', { withCredentials: true, transports: ['polling'] });
       socket.on('connect', () => socket?.emit('join', { workspaceId }));
       const fire = () => cb.current();
       socket.on('run:step', fire);

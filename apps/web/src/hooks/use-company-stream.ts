@@ -8,8 +8,6 @@
 import { useEffect, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
-
 export function useCompanyStream(workspaceId: string | undefined, onEvent: () => void) {
   const cb = useRef(onEvent);
   cb.current = onEvent;
@@ -18,7 +16,9 @@ export function useCompanyStream(workspaceId: string | undefined, onEvent: () =>
     if (!workspaceId) return;
     let socket: Socket | null = null;
     try {
-      socket = io(`${API_URL}/company`, { withCredentials: true, transports: ['websocket', 'polling'] });
+      // Same-origin; proxied by the Next.js server. Polling transport (Next
+      // rewrites proxy HTTP long-poll, not raw WebSocket upgrades).
+      socket = io('/company', { withCredentials: true, transports: ['polling'] });
       socket.on('connect', () => socket?.emit('join', { workspaceId }));
       const fire = () => cb.current();
       socket.on('company:message', fire);

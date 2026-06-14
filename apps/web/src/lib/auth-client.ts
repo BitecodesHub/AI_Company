@@ -4,11 +4,9 @@
  */
 import { createAuthClient } from 'better-auth/client';
 
-// Browser calls the NestJS API directly.
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
-
+// Same-origin: better-auth defaults baseURL to window.location.origin; the
+// Next.js server proxies /api/auth/* to the API. No API URL in the bundle.
 export const authClient = createAuthClient({
-  baseURL: API_URL,
   basePath: '/api/auth',
   fetchOptions: {
     credentials: 'include',

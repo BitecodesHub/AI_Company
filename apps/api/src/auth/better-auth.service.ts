@@ -91,13 +91,17 @@ export class BetterAuthService implements OnModuleInit {
       advanced: {
         generateId: () => crypto.randomUUID(),
       },
-      // Trust all local dev origins so CORS works from the Next.js web app
+      // Trust the web app's origin. Same-origin in the combined app image, so
+      // the browser origin equals the public app URL. RENDER_EXTERNAL_URL is the
+      // full https URL Render injects; APP_URL/NEXT_PUBLIC_APP_URL cover the rest.
       trustedOrigins: [
         'http://localhost:3000',
         'http://localhost:3001',
         'http://localhost:3002',
-        process.env['APP_URL'] ?? 'http://localhost:3002',
-      ],
+        process.env['RENDER_EXTERNAL_URL'],
+        process.env['APP_URL'],
+        process.env['NEXT_PUBLIC_APP_URL'],
+      ].filter((o): o is string => Boolean(o)),
       emailAndPassword: {
         enabled: true,
         requireEmailVerification: false,

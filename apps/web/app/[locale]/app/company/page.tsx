@@ -25,7 +25,7 @@ export default function CompanyPage() {
 
   const { data: timeline } = useQuery({
     queryKey: ['conversation', selected],
-    queryFn: () => companyApi.messages(selected!),
+    queryFn: () => companyApi.messages(selected as string), // guarded by `enabled` below
     enabled: !!selected,
     refetchInterval: 10_000,
   });
@@ -43,7 +43,10 @@ export default function CompanyPage() {
   });
 
   const post = useMutation({
-    mutationFn: () => companyApi.postMessage(selected!, draft.trim()),
+    mutationFn: () => {
+      if (!selected) throw new Error('No conversation selected');
+      return companyApi.postMessage(selected, draft.trim());
+    },
     onSuccess: () => { setDraft(''); refetch(); },
     onError: (e: Error) => toast.error(e.message || 'Could not send'),
   });

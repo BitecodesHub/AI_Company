@@ -1,8 +1,10 @@
 # Render Blueprint — deploys Bitecodes from the single ./Dockerfile.
 #
-# Both services build the SAME image and pick their role via SERVICE:
-#   web → Next.js site/app (default)   api → NestJS API
-# The API runs the DB migrate (pgvector + schema + RLS) as a pre-deploy step.
+# ONE web service runs the whole product: the combined `app` role serves the
+# Next.js web app on $PORT and the NestJS API on localhost:4000, and the web app
+# proxies the API same-origin. No API URL is configured anywhere — the browser
+# only ever talks to the public app URL. The DB migrate (pgvector + schema + RLS)
+# runs as a pre-deploy step.
 #
 # NOTE on Postgres: Render's managed Postgres user is the database OWNER (not a
 # superuser). It CAN enable pgvector and push the schema. Because the schema
@@ -23,16 +25,16 @@ services:
     ipAllowList: []
 
   - type: web
-    name: bitecodes-api
+    name: bitecodes-app
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: starter
-    healthCheckPath: /health
-    preDeployCommand: "SERVICE=migrate sh infra/docker/entrypoint.sh"
+    healthCheckPath: /
+    preDeployCommand: "SERVICE=migrate bash infra/docker/entrypoint.sh"
     envVars:
       - key: SERVICE
-        value: api
+        value: app             # combined API + web
       - key: NODE_ENV
         value: production
       - key: AI_GATEWAY_MODE
@@ -49,20 +51,7 @@ services:
         generateValue: true
       - key: INNGEST_DEV
         value: "1"
-
-  - type: web
-    name: bitecodes-web
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
-    plan: starter
-    healthCheckPath: /
-    envVars:
-      - key: SERVICE
-        value: web
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        fromService: { name: bitecodes-api, type: web, property: host }
+      # RENDER_EXTERNAL_URL (full https URL, injected automatically) is the app's
+      # public origin — used as a trusted auth origin and the SEO canonical base.
       - key: NEXT_PUBLIC_APP_URL
-        fromService: { name: bitecodes-web, type: web, property: host }
+        fromService: { name: bitecodes-app, type: web, property: host }

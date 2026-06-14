@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'Documentation — Bitecodes' };
 
 const sections = [
   { icon: Zap, title: 'Quick start', description: 'Get your first agent running in 5 minutes.', href: '#quick-start' },
-  { icon: Code, title: 'API reference', description: 'Full REST API docs served at /api/docs (Swagger).', href: `${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000'}/docs`, external: true },
+  { icon: Code, title: 'API reference', description: 'Full REST API docs served at /api/docs (Swagger).', href: '/api/docs', external: true },
   { icon: Plug, title: 'Connector guide', description: 'Connect social accounts, email, Slack, and more.', href: '#connectors' },
   { icon: Shield, title: 'Self-hosting', description: 'Deploy Bitecodes on your own infrastructure.', href: '#self-hosting' },
 ];

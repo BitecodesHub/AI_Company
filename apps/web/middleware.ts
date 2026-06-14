@@ -4,5 +4,7 @@ import { routing } from './src/routing';
 export default createMiddleware(routing);
 
 export const config = {
-  matcher: ['/((?!_next|_vercel|.*\\..*).*)'],
+  // Exclude backend-proxy prefixes (/v1, /api/*, /socket.io) so next-intl does
+  // not locale-mangle them before the next.config rewrites can proxy them.
+  matcher: ['/((?!_next|_vercel|api|v1|socket\\.io|.*\\..*).*)'],
 };

@@ -35,7 +35,10 @@ export function RouteRequest() {
   });
 
   const confirm = useMutation({
-    mutationFn: (divert?: string) => orchestrationApi.confirm(decision!.id, divert),
+    mutationFn: (divert?: string) => {
+      if (!decision) throw new Error('No routing decision');
+      return orchestrationApi.confirm(decision.id, divert);
+    },
     onSuccess: (_r, divert) => {
       toast.success(divert ? `Diverted to ${nameOf(divert)}` : `Confirmed — sent to ${nameOf(decision?.proposedAgentId)}`);
       setDecision(null); setRequest(''); setDivertTo('');

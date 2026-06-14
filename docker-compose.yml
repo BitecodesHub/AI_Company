@@ -3,13 +3,13 @@
 #
 #   docker compose up           → starts EVERYTHING: postgres, redis, minio,
 #                                 inngest, a one-shot DB migrate (schema + RLS),
-#                                 the API, and the web app. One command.
+#                                 and the combined app (API + web). One command.
 #   docker compose up postgres redis   → infra only (for local pnpm dev).
 #   docker compose --profile litellm up→ also start the optional LiteLLM gateway.
 #
-# web/api/migrate all build ONE image (Dockerfile `app` target) and pick their
-# role via $SERVICE. A plain `docker build .` yields the web app (default role),
-# which is what single-service platforms (e.g. Render) deploy.
+# The app + migrate services build ONE image (Dockerfile `app` target) and pick
+# their role via $SERVICE. A plain `docker build .` yields the combined app
+# (API + web, same origin), which is what single-service platforms (Render) deploy.
 #
 # Out of the box the API runs in AI_GATEWAY_MODE=mock (no provider key needed).
 # Set AI_PROVIDER + a key in .env to use a real provider.
@@ -132,8 +132,8 @@ services:
       start_period: 20s
 
   # ── One-shot DB bootstrap: pgvector + schema push + RLS + app role ───────────
-  # All three app services build the SAME image (target: app) and pick their role
-  # via $SERVICE — one Dockerfile, one image, three roles.
+  # The migrate + app services build the SAME image (target: app) and pick their
+  # role via $SERVICE — one Dockerfile, one image.
   migrate:
     build: &app-build
       context: .
@@ -152,17 +152,19 @@ services:
     networks:
       - bitecodes
 
-  # ── NestJS API ───────────────────────────────────────────────────────────────
-  api:
+  # ── Combined app: NestJS API (:4000) + Next.js web (:3000) in one container ──
+  # The web app proxies the API same-origin at localhost:4000 — no API URL is
+  # configured anywhere. The browser only ever talks to :3000.
+  app:
     build: *app-build
     image: bitecodes-app
-    container_name: bitecodes-api
+    container_name: bitecodes-app
     restart: unless-stopped
     env_file: .env
     environment:
-      SERVICE: api
+      SERVICE: app
       NODE_ENV: production
-      PORT: "4000"
+      PORT: "3000"
       # Service-name URLs (override the localhost values in .env inside Docker).
       DATABASE_URL: postgresql://bitecodes_app:bitecodes_app_secret@postgres:5432/${POSTGRES_DB:-bitecodes}
       DATABASE_SUPERUSER_URL: postgresql://${POSTGRES_USER:-bitecodes}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-bitecodes}
@@ -172,8 +174,12 @@ services:
       INNGEST_BASE_URL: http://inngest:8288
       # Works with no provider key out of the box; set AI_PROVIDER + key in .env to go live.
       AI_GATEWAY_MODE: ${AI_GATEWAY_MODE:-mock}
+      # Trusted origin for auth (same-origin in the combined app).
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3000}
     ports:
-      - "4000:4000"
+      - "3000:3000"   # web (public)
+      - "4000:4000"   # API (direct access / Swagger at /docs)
     depends_on:
       postgres:
         condition: service_healthy
@@ -181,33 +187,6 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    networks:
-      - bitecodes
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
-      interval: 20s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-
-  # ── Next.js web app ──────────────────────────────────────────────────────────
-  web:
-    build: *app-build
-    image: bitecodes-app
-    container_name: bitecodes-web
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      SERVICE: web
-      NODE_ENV: production
-      PORT: "3000"
-      NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3000}
-      NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:4000}
-    ports:
-      - "3000:3000"
-    depends_on:
-      api:
-        condition: service_started
     networks:
       - bitecodes
     healthcheck:
