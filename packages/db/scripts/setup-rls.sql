@@ -3,8 +3,15 @@
 -- Usage: psql <superuser-url>/bitecodes -f packages/db/scripts/setup-rls.sql
 -- Idempotent: safe to run multiple times.
 
--- ── 1. Create the unprivileged application role ──────────────────────────────
-DO $$
+-- ── 1-3. Application role + grants (self-managed superuser Postgres only) ─────
+-- On managed Postgres (e.g. Render) the connecting user is the database OWNER,
+-- not a superuser, and usually lacks CREATEROLE. There the app uses the owner
+-- connection string for both DATABASE_URL and DATABASE_SUPERUSER_URL, so the
+-- separate bitecodes_app role is unnecessary. Role creation + grants are therefore
+-- best-effort: if the current user cannot manage roles, log and continue rather
+-- than aborting the migration (which, under ON_ERROR_STOP=1, would fail the whole
+-- deploy and leave the database without its schema).
+DO $role$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bitecodes_app') THEN
     CREATE ROLE bitecodes_app LOGIN PASSWORD 'bitecodes_app_secret' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
@@ -12,20 +19,22 @@ BEGIN
   ELSE
     RAISE NOTICE 'Role bitecodes_app already exists.';
   END IF;
-END$$;
 
--- ── 2. Grant schema usage ─────────────────────────────────────────────────────
-GRANT USAGE ON SCHEMA public TO bitecodes_app;
-
--- ── 3. Grant table + sequence privileges ─────────────────────────────────────
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO bitecodes_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO bitecodes_app;
-
--- Future tables/sequences will also be granted automatically
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO bitecodes_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT USAGE, SELECT ON SEQUENCES TO bitecodes_app;
+  -- Schema usage + table/sequence privileges (current and future objects).
+  GRANT USAGE ON SCHEMA public TO bitecodes_app;
+  GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO bitecodes_app;
+  GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO bitecodes_app;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO bitecodes_app;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO bitecodes_app;
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'Skipping bitecodes_app role/grants: current user cannot manage roles (managed Postgres). The app connects as the database owner instead.';
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Skipping bitecodes_app role/grants (SQLSTATE %): %', SQLSTATE, SQLERRM;
+END
+$role$;
 
 -- ── 4. Enable + force RLS on every tenant-scoped table ───────────────────────
 -- organizations is global (no RLS needed — callers filter by id explicitly)
