@@ -1,0 +1,68 @@
+# Render Blueprint — deploys Bitecodes from the single ./Dockerfile.
+#
+# Both services build the SAME image and pick their role via SERVICE:
+#   web → Next.js site/app (default)   api → NestJS API
+# The API runs the DB migrate (pgvector + schema + RLS) as a pre-deploy step.
+#
+# NOTE on Postgres: Render's managed Postgres user is the database OWNER (not a
+# superuser). It CAN enable pgvector and push the schema. Because the schema
+# uses FORCE ROW LEVEL SECURITY, RLS is enforced even for the owner, so the app
+# connects with the same Render connection string for both DATABASE_URL and
+# DATABASE_SUPERUSER_URL. The separate `bitecodes_app` role from setup-rls.sql is
+# only needed on a self-managed superuser Postgres; on Render it is skipped.
+
+databases:
+  - name: bitecodes-db
+    plan: free
+    postgresMajorVersion: "16"
+
+services:
+  - type: keyvalue            # Redis-compatible
+    name: bitecodes-redis
+    plan: free
+    ipAllowList: []
+
+  - type: web
+    name: bitecodes-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    preDeployCommand: "SERVICE=migrate sh infra/docker/entrypoint.sh"
+    envVars:
+      - key: SERVICE
+        value: api
+      - key: NODE_ENV
+        value: production
+      - key: AI_GATEWAY_MODE
+        value: mock            # set blank + AI_PROVIDER/key to go live
+      - key: DATABASE_URL
+        fromDatabase: { name: bitecodes-db, property: connectionString }
+      - key: DATABASE_SUPERUSER_URL
+        fromDatabase: { name: bitecodes-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { name: bitecodes-redis, type: keyvalue, property: connectionString }
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: INNGEST_DEV
+        value: "1"
+
+  - type: web
+    name: bitecodes-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /
+    envVars:
+      - key: SERVICE
+        value: web
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService: { name: bitecodes-api, type: web, property: host }
+      - key: NEXT_PUBLIC_APP_URL
+        fromService: { name: bitecodes-web, type: web, property: host }
