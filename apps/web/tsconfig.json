@@ -1,0 +1,48 @@
+{
+  "extends": "@bitecodes/config/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "incremental": true,
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@bitecodes/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@bitecodes/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@bitecodes/seo": [
+        "../../packages/seo/src/index.ts"
+      ]
+    },
+    "esModuleInterop": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

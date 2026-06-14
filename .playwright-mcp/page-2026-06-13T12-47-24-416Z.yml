@@ -1,0 +1,22 @@
+- generic [active]:
+  - alert [ref=e1]
+  - dialog [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Build Error" [level=1] [ref=e7]
+        - generic [ref=e8]:
+          - text: Next.js (15.1.3) is outdated
+          - link "(learn more)" [ref=e10] [cursor=pointer]:
+            - /url: https://nextjs.org/docs/messages/version-staleness
+        - paragraph [ref=e11]: Failed to compile
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - link "./src/components/providers.tsx:5:1" [ref=e14] [cursor=pointer]:
+            - text: ./src/components/providers.tsx:5:1
+            - img [ref=e15]
+          - generic [ref=e20]:
+            - text: "Module not found: Can't resolve 'sonner' 3 | import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; 4 | import { useState, type ReactNode } from 'react'; > 5 | import { Toaster } from 'sonner'; | ^ 6 | 7 | export function Providers({ children }: { children: ReactNode }) { 8 | const [queryClient] = useState("
+            - link "https://nextjs.org/docs/messages/module-not-found" [ref=e21] [cursor=pointer]:
+              - /url: https://nextjs.org/docs/messages/module-not-found
+        - contentinfo [ref=e22]:
+          - paragraph [ref=e23]: This error occurred during the build process and can only be dismissed by fixing the error.

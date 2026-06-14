@@ -1,0 +1,128 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - navigation [ref=e4]:
+        - link "Bitecodes" [ref=e5] [cursor=pointer]:
+          - /url: /en
+          - generic [ref=e6]:
+            - generic [ref=e7]: B
+            - generic [ref=e8]: Bitecodes
+        - generic [ref=e9]:
+          - link "Features" [ref=e10] [cursor=pointer]:
+            - /url: /en/features
+          - link "Pricing" [ref=e11] [cursor=pointer]:
+            - /url: /en/pricing
+          - link "About" [ref=e12] [cursor=pointer]:
+            - /url: /en/about
+          - link "Docs" [ref=e13] [cursor=pointer]:
+            - /url: /en/docs
+          - link "Contact" [ref=e14] [cursor=pointer]:
+            - /url: /en/contact
+        - generic [ref=e15]:
+          - link "Sign in" [ref=e16] [cursor=pointer]:
+            - /url: /en/login
+          - link "Get started" [ref=e17] [cursor=pointer]:
+            - /url: /en/signup
+            - text: Get started
+            - img [ref=e18]
+    - main [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e23]:
+          - heading "Let’s talk" [level=1] [ref=e24]
+          - paragraph [ref=e25]: Questions, demos, or enterprise self-hosting — we’re quick to respond.
+        - generic [ref=e26]:
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - img [ref=e31]
+              - generic [ref=e33]:
+                - heading "Product questions" [level=3] [ref=e34]
+                - paragraph [ref=e35]: Not sure if AI employees fit your workflow? Ask us anything.
+            - generic [ref=e36]:
+              - img [ref=e38]
+              - generic [ref=e42]:
+                - heading "Enterprise & self-host" [level=3] [ref=e43]
+                - paragraph [ref=e44]: SSO, on-prem, custom branding, and volume pricing.
+            - generic [ref=e45]:
+              - img [ref=e47]
+              - generic [ref=e50]:
+                - heading "Partnerships" [level=3] [ref=e51]
+                - paragraph [ref=e52]: Building on top of Bitecodes? Let’s talk integrations.
+          - generic [ref=e54]:
+            - generic [ref=e55]:
+              - generic [ref=e56]:
+                - generic [ref=e57]: Name
+                - textbox "Name" [ref=e58]:
+                  - /placeholder: Jane Doe
+              - generic [ref=e59]:
+                - generic [ref=e60]: Work email
+                - textbox "Work email" [ref=e61]:
+                  - /placeholder: jane@company.com
+            - generic [ref=e62]:
+              - generic [ref=e63]: Company (optional)
+              - textbox "Company (optional)" [ref=e64]:
+                - /placeholder: Acme Inc.
+            - generic [ref=e65]:
+              - generic [ref=e66]: Message
+              - textbox "Message" [ref=e67]:
+                - /placeholder: Tell us what you are looking to build…
+            - button "Send message" [disabled] [ref=e68]:
+              - img [ref=e69]
+              - text: Send message
+    - contentinfo [ref=e72]:
+      - generic [ref=e73]:
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]: B
+              - generic [ref=e78]: Bitecodes
+            - paragraph [ref=e79]: Hire AI employees that do real work — with the controls, memory, and oversight a real team needs.
+            - generic [ref=e80]:
+              - link "social" [ref=e81] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e82]
+              - link "social" [ref=e85] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e86]
+              - link "social" [ref=e88] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e89]
+          - generic [ref=e93]:
+            - heading "Product" [level=4] [ref=e94]
+            - list [ref=e95]:
+              - listitem [ref=e96]:
+                - link "Features" [ref=e97] [cursor=pointer]:
+                  - /url: /en/features
+              - listitem [ref=e98]:
+                - link "Pricing" [ref=e99] [cursor=pointer]:
+                  - /url: /en/pricing
+              - listitem [ref=e100]:
+                - link "Get started" [ref=e101] [cursor=pointer]:
+                  - /url: /en/signup
+              - listitem [ref=e102]:
+                - link "Sign in" [ref=e103] [cursor=pointer]:
+                  - /url: /en/login
+          - generic [ref=e104]:
+            - heading "Company" [level=4] [ref=e105]
+            - list [ref=e106]:
+              - listitem [ref=e107]:
+                - link "About" [ref=e108] [cursor=pointer]:
+                  - /url: /en/about
+              - listitem [ref=e109]:
+                - link "Contact" [ref=e110] [cursor=pointer]:
+                  - /url: /en/contact
+              - listitem [ref=e111]:
+                - link "Docs" [ref=e112] [cursor=pointer]:
+                  - /url: /en/docs
+          - generic [ref=e113]:
+            - heading "Legal" [level=4] [ref=e114]
+            - list [ref=e115]:
+              - listitem [ref=e116]:
+                - link "Privacy" [ref=e117] [cursor=pointer]:
+                  - /url: /en/privacy
+              - listitem [ref=e118]:
+                - link "Terms" [ref=e119] [cursor=pointer]:
+                  - /url: /en/terms
+        - generic [ref=e120]:
+          - paragraph [ref=e121]: © Bitecodes. Open-core, Apache 2.0. Built for teams who ship.
+          - paragraph [ref=e122]: Made with intent — not templates.
+  - region "Notifications alt+T"

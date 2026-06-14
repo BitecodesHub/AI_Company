@@ -1,0 +1,53 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "../../",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "strictPropertyInitialization": false,
+    "exactOptionalPropertyTypes": false,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@bitecodes/shared": ["../../packages/shared/src/index.ts"],
+      "@bitecodes/db": ["../../packages/db/src/index.ts"],
+      "@bitecodes/ai-core": ["../../packages/ai-core/src/index.ts"],
+      "@bitecodes/connectors": ["../../packages/connectors/src/index.ts"],
+      "@bitecodes/mcp": ["../../packages/mcp/src/index.ts"],
+      "@bitecodes/ai-controller": ["../../packages/ai-controller/src/index.ts"],
+      "@bitecodes/seo": ["../../packages/seo/src/index.ts"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "../../packages/shared/src/**/*",
+    "../../packages/ai-core/src/**/*",
+    "../../packages/ai-controller/src/**/*",
+    "../../packages/connectors/src/**/*",
+    "../../packages/mcp/src/**/*",
+    "../../packages/seo/src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "../../packages/seo/src/__tests__/**/*"
+  ]
+}

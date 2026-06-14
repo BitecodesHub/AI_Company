@@ -1,0 +1,25 @@
+{
+  "name": "@bitecodes/ai-controller",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Action registry, action schemas, and command bus types",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@bitecodes/shared": "workspace:*",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@bitecodes/config": "workspace:*",
+    "typescript": "5.6.3",
+    "vitest": "2.1.8"
+  }
+}

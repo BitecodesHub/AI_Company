@@ -1,0 +1,225 @@
+
+# Bitecodes — full project stack.
+#
+#   docker compose up           → starts EVERYTHING: postgres, redis, minio,
+#                                 inngest, a one-shot DB migrate (schema + RLS),
+#                                 the API, and the web app. One command.
+#   docker compose up postgres redis   → infra only (for local pnpm dev).
+#   docker compose --profile litellm up→ also start the optional LiteLLM gateway.
+#   docker compose --profile worker up → also start the optional Python worker.
+#
+# Out of the box the API runs in AI_GATEWAY_MODE=mock (no provider key needed).
+# Set AI_PROVIDER + a key in .env to use a real provider.
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  bitecodes:
+    driver: bridge
+
+services:
+  # ── PostgreSQL 16 + pgvector ────────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: bitecodes-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bitecodes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-bitecodes}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bitecodes
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bitecodes} -d ${POSTGRES_DB:-bitecodes}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis 7 ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: bitecodes-redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bitecodes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── MinIO (S3-compatible object storage) ────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: bitecodes-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-bitecodes}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console UI
+    volumes:
+      - minio_data:/data
+    networks:
+      - bitecodes
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+  # ── Inngest dev server ───────────────────────────────────────────────────────
+  inngest:
+    image: inngest/inngest:latest
+    container_name: bitecodes-inngest
+    restart: unless-stopped
+    command: inngest dev --host 0.0.0.0
+    ports:
+      - "8288:8288"
+    networks:
+      - bitecodes
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8288/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # ── LiteLLM model gateway (optional — only for AI_PROVIDER=litellm) ──────────
+  litellm:
+    profiles: ["litellm"]
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: bitecodes-litellm
+    restart: unless-stopped
+    command: --config /app/config/litellm.config.yaml --port 4001 --host 0.0.0.0
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-dev-master-key}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    ports:
+      - "4001:4001"
+    volumes:
+      - ./infra/litellm/litellm.config.yaml:/app/config/litellm.config.yaml:ro
+    networks:
+      - bitecodes
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4001/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # ── One-shot DB bootstrap: pgvector + schema push + RLS + app role ───────────
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.migrate
+    container_name: bitecodes-migrate
+    restart: "no"
+    env_file: .env
+    environment:
+      # Runs as the Postgres superuser to create tables + the bitecodes_app role.
+      DATABASE_SUPERUSER_URL: postgresql://${POSTGRES_USER:-bitecodes}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-bitecodes}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bitecodes
+
+  # ── NestJS API ───────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    container_name: bitecodes-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      # Service-name URLs (override the localhost values in .env inside Docker).
+      DATABASE_URL: postgresql://bitecodes_app:bitecodes_app_secret@postgres:5432/${POSTGRES_DB:-bitecodes}
+      DATABASE_SUPERUSER_URL: postgresql://${POSTGRES_USER:-bitecodes}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-bitecodes}
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      INNGEST_DEV: "1"
+      INNGEST_BASE_URL: http://inngest:8288
+      # Works with no provider key out of the box; set AI_PROVIDER + key in .env to go live.
+      AI_GATEWAY_MODE: ${AI_GATEWAY_MODE:-mock}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - bitecodes
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Next.js web app ──────────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.web
+    container_name: bitecodes-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:4000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - bitecodes
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Python AI worker (optional — Phase 3+) ───────────────────────────────────
+  worker:
+    profiles: ["worker"]
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+    container_name: bitecodes-worker
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bitecodes

@@ -1,0 +1,27 @@
+Bitecodes Enterprise License
+
+Copyright (c) 2024 Bitecodes. All Rights Reserved.
+
+ENTERPRISE FEATURES LICENSE
+
+The software in this directory ("Enterprise Features") is proprietary and
+confidential. Use of the Enterprise Features is subject to a separate
+commercial license agreement between you and Bitecodes.
+
+WITHOUT A VALID COMMERCIAL LICENSE KEY, THE ENTERPRISE FEATURES ARE
+PROVIDED FOR REVIEW PURPOSES ONLY AND MAY NOT BE DEPLOYED, EXECUTED,
+OR USED IN ANY PRODUCTION OR NON-PRODUCTION ENVIRONMENT.
+
+The core platform (everything outside this /ee directory) is licensed
+under the Apache License, Version 2.0. See the root LICENSE file.
+
+Enterprise features include:
+- SSO (SAML 2.0, OIDC, SCIM directory sync)
+- Advanced RBAC (custom roles, tool-scope permissions)
+- Audit log export and SIEM forwarding
+- Guardrails Pro (premium prompt-injection classifier, PII vault)
+- IP allowlist, session policies, enforced 2FA
+- White-label "Powered by" removal
+- Custom domain support
+
+To obtain a commercial license, contact: hello@bitecodes.com

@@ -1,0 +1,121 @@
+'use client';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { ArrowLeft, Bot, Sparkles } from 'lucide-react';
+import { agentsApi, ApiError } from '../../../../../src/lib/api-client';
+
+export default function NewAgentPage() {
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('');
+  const [goal, setGoal] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name || !role) { setError('Name and role are required.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const agent = await agentsApi.create({ name, role, goal, costTier: 'auto', mode: 'sandbox' });
+      router.push(`/app/agents/${agent.id}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError('Your session expired. Please sign in again.');
+        setTimeout(() => router.push('/login'), 1500);
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Failed to create agent. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const templates = [
+    { icon: '📱', title: 'Social Media Manager', role: 'Social media specialist', goal: 'Create, schedule, and publish engaging social content across all platforms in brand voice' },
+    { icon: '✍️', title: 'Blog Writer', role: 'Content writer', goal: 'Research topics and write SEO-optimized blog posts with proper structure and internal links' },
+    { icon: '💬', title: 'Customer Support', role: 'Customer support specialist', goal: 'Reply to customer inquiries, DMs, and comments with empathy and brand voice' },
+    { icon: '📊', title: 'Analytics Reporter', role: 'Data analyst', goal: 'Analyze content and campaign performance and provide actionable insights weekly' },
+  ];
+
+  return (
+    <div className="p-8 max-w-3xl mx-auto">
+      <div className="flex items-center gap-3 mb-8">
+        <Link href="/app/agents" className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-sm transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </Link>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-sm font-medium">New Agent</span>
+      </div>
+
+      <h1 className="text-2xl font-bold mb-2">Create an agent</h1>
+      <p className="text-muted-foreground mb-8">Define your agent&apos;s role, goal, and personality. You can refine it later.</p>
+
+      {/* Templates */}
+      <div className="mb-8">
+        <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4" /> Start from a template
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          {templates.map((t) => (
+            <button
+              key={t.title}
+              type="button"
+              onClick={() => { setName(t.title); setRole(t.role); setGoal(t.goal); }}
+              className="text-left border border-border rounded-xl p-4 hover:border-primary/50 hover:bg-primary/5 transition-colors group"
+            >
+              <div className="text-2xl mb-2">{t.icon}</div>
+              <div className="font-medium text-sm">{t.title}</div>
+              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{t.goal}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative flex items-center gap-4 mb-8">
+        <div className="flex-1 border-t border-border" />
+        <span className="text-xs text-muted-foreground">or build from scratch</span>
+        <div className="flex-1 border-t border-border" />
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleCreate} className="space-y-5">
+        {error && (
+          <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg">{error}</div>
+        )}
+        <div>
+          <label className="block text-sm font-medium mb-1.5" htmlFor="name">Agent name <span className="text-destructive">*</span></label>
+          <input id="name" value={name} onChange={e => setName(e.target.value)} required
+            placeholder="e.g. Social Media Manager"
+            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1.5" htmlFor="role">Role <span className="text-destructive">*</span></label>
+          <input id="role" value={role} onChange={e => setRole(e.target.value)} required
+            placeholder="e.g. You are an expert social media strategist"
+            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" />
+          <p className="text-xs text-muted-foreground mt-1">Describe what this agent is and what it specialises in.</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1.5" htmlFor="goal">Goal</label>
+          <textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} rows={3}
+            placeholder="e.g. Help the team create and schedule engaging social content that drives engagement"
+            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none" />
+        </div>
+        <div className="flex gap-3 pt-2">
+          <Link href="/app/agents" className="flex-1 text-center border border-border px-4 py-2.5 rounded-lg text-sm hover:bg-muted transition-colors">
+            Cancel
+          </Link>
+          <button type="submit" disabled={loading}
+            className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            <Bot className="w-4 h-4" />
+            {loading ? 'Creating…' : 'Create agent'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

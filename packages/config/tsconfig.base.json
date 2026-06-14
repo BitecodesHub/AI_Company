@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "paths": {
+      "@bitecodes/shared": ["../shared/src/index.ts"],
+      "@bitecodes/db": ["../db/src/index.ts"],
+      "@bitecodes/ui": ["../ui/src/index.ts"],
+      "@bitecodes/ai-core": ["../ai-core/src/index.ts"],
+      "@bitecodes/connectors": ["../connectors/src/index.ts"],
+      "@bitecodes/mcp": ["../mcp/src/index.ts"],
+      "@bitecodes/ai-controller": ["../ai-controller/src/index.ts"],
+      "@bitecodes/seo": ["../seo/src/index.ts"],
+      "@bitecodes/config": ["../config"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", "coverage"]
+}

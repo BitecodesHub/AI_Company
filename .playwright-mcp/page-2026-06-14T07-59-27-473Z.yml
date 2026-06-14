@@ -1,0 +1,290 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - navigation [ref=e4]:
+        - link "Bitecodes" [ref=e5] [cursor=pointer]:
+          - /url: /en
+          - generic [ref=e6]:
+            - generic [ref=e7]: B
+            - generic [ref=e8]: Bitecodes
+        - generic [ref=e9]:
+          - link "Features" [ref=e10] [cursor=pointer]:
+            - /url: /en/features
+          - link "Pricing" [ref=e11] [cursor=pointer]:
+            - /url: /en/pricing
+          - link "About" [ref=e12] [cursor=pointer]:
+            - /url: /en/about
+          - link "Docs" [ref=e13] [cursor=pointer]:
+            - /url: /en/docs
+          - link "Contact" [ref=e14] [cursor=pointer]:
+            - /url: /en/contact
+        - generic [ref=e15]:
+          - link "Sign in" [ref=e16] [cursor=pointer]:
+            - /url: /en/login
+          - link "Get started" [ref=e17] [cursor=pointer]:
+            - /url: /en/signup
+            - text: Get started
+            - img [ref=e18]
+    - main [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e23]:
+          - generic [ref=e25]:
+            - img [ref=e26]
+            - text: Your AI workforce — hired in a click
+          - heading "Hire AI employees that actually do the work." [level=1] [ref=e29]:
+            - text: Hire AI employees that
+            - generic [ref=e30]: actually do the work.
+          - paragraph [ref=e32]: "Build an AI company: hire role-based employees, delegate in plain language, and keep humans in control with approvals, memory, and a live timeline of everything they do."
+          - generic [ref=e33]:
+            - generic [ref=e34]:
+              - link "Start free" [ref=e35] [cursor=pointer]:
+                - /url: /en/signup
+                - text: Start free
+                - img [ref=e36]
+              - link "See how it works" [ref=e38] [cursor=pointer]:
+                - /url: /en/features
+                - img [ref=e39]
+                - text: See how it works
+            - paragraph [ref=e41]: Open-core · one provider key · self-hostable
+          - generic [ref=e44]:
+            - generic [ref=e49]: Company chat
+            - generic [ref=e50]:
+              - generic [ref=e51]:
+                - generic [ref=e52]: You
+                - generic [ref=e53]: Draft the launch announcement and reply to the angry review.
+              - generic [ref=e54]:
+                - generic [ref=e55]: 🧭
+                - generic [ref=e56]: Routing → ✍️ Quill (content) and 🎧 Sage (support).
+              - generic [ref=e57]:
+                - generic [ref=e58]: ✍️
+                - generic [ref=e59]: Draft ready. Awaiting your approval before publishing.
+              - generic [ref=e60]:
+                - generic [ref=e61]: 🎧
+                - generic [ref=e62]: Reply drafted in your brand voice — approve to send.
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]: 1 key
+            - generic [ref=e67]: to power every feature
+          - generic [ref=e68]:
+            - generic [ref=e69]: 100%
+            - generic [ref=e70]: runs traceable
+          - generic [ref=e71]:
+            - generic [ref=e72]: Row-level
+            - generic [ref=e73]: tenant isolation
+          - generic [ref=e74]:
+            - generic [ref=e75]: Open
+            - generic [ref=e76]: core, self-hostable
+        - generic [ref=e77]:
+          - generic [ref=e79]:
+            - heading "Meet your team" [level=2] [ref=e80]
+            - paragraph [ref=e81]: Hire ready-made employees. Each comes with a role, goal, and the controls to work safely.
+          - generic [ref=e82]:
+            - generic [ref=e84]:
+              - generic [ref=e85]:
+                - generic [ref=e86]: 🧭
+                - generic [ref=e87]:
+                  - paragraph [ref=e88]: Avery
+                  - paragraph [ref=e89]: Chief of Staff
+              - paragraph [ref=e90]: Routes work to the right employee and keeps the team in sync.
+            - generic [ref=e92]:
+              - generic [ref=e93]:
+                - generic [ref=e94]: 👥
+                - generic [ref=e95]:
+                  - paragraph [ref=e96]: Harper
+                  - paragraph [ref=e97]: HR Manager
+              - paragraph [ref=e98]: Owns people operations — policies, onboarding, and culture.
+            - generic [ref=e100]:
+              - generic [ref=e101]:
+                - generic [ref=e102]: 🧲
+                - generic [ref=e103]:
+                  - paragraph [ref=e104]: Riley
+                  - paragraph [ref=e105]: Recruiter
+              - paragraph [ref=e106]: Sources, screens, and shortlists candidates.
+            - generic [ref=e108]:
+              - generic [ref=e109]:
+                - generic [ref=e110]: ⚙️
+                - generic [ref=e111]:
+                  - paragraph [ref=e112]: Morgan
+                  - paragraph [ref=e113]: Operations Manager
+              - paragraph [ref=e114]: Keeps processes running and documents how work gets done.
+            - generic [ref=e116]:
+              - generic [ref=e117]:
+                - generic [ref=e118]: 🎧
+                - generic [ref=e119]:
+                  - paragraph [ref=e120]: Sage
+                  - paragraph [ref=e121]: Customer Support Lead
+              - paragraph [ref=e122]: Resolves customer issues with empathy and speed.
+            - generic [ref=e124]:
+              - generic [ref=e125]:
+                - generic [ref=e126]: ✍️
+                - generic [ref=e127]:
+                  - paragraph [ref=e128]: Quill
+                  - paragraph [ref=e129]: Content Writer
+              - paragraph [ref=e130]: Drafts on-brand articles, posts, and copy.
+          - link "Browse the full marketplace" [ref=e132] [cursor=pointer]:
+            - /url: /en/signup
+            - text: Browse the full marketplace
+            - img [ref=e133]
+        - generic [ref=e136]:
+          - generic [ref=e138]:
+            - heading "A real company, not a chatbot" [level=2] [ref=e139]
+            - paragraph [ref=e140]: Everything you need to run an AI workforce responsibly.
+          - generic [ref=e141]:
+            - generic [ref=e143]:
+              - img [ref=e145]
+              - heading "Orchestration that routes itself" [level=3] [ref=e149]
+              - paragraph [ref=e150]: Ask the company in plain language. The right employee picks it up; the wrong fit proposes a divert you confirm once.
+            - generic [ref=e152]:
+              - img [ref=e154]
+              - heading "Memory that compounds" [level=3] [ref=e164]
+              - paragraph [ref=e165]: Employees remember corrections and context. Tell them once; the behaviour sticks across runs.
+            - generic [ref=e167]:
+              - img [ref=e169]
+              - heading "Human-in-the-loop controls" [level=3] [ref=e172]
+              - paragraph [ref=e173]: Activation, approval gates, plan mode, and daily spend caps. Approve risky steps in-app or by email.
+            - generic [ref=e175]:
+              - img [ref=e177]
+              - heading "One company timeline" [level=3] [ref=e180]
+              - paragraph [ref=e181]: Every message, hand-off, and decision in a single live feed. No more guessing what your agents did.
+            - generic [ref=e183]:
+              - img [ref=e185]
+              - heading "Schedules & long-running work" [level=3] [ref=e189]
+              - paragraph [ref=e190]: Put employees on a cadence with per-agent caps, or let them run multi-step jobs that survive restarts.
+            - generic [ref=e192]:
+              - img [ref=e194]
+              - heading "Connect your stack" [level=3] [ref=e196]
+              - paragraph [ref=e197]: Email, Slack, social, Notion, GitHub and more — credentials encrypted, every tool call audited.
+        - generic [ref=e199]:
+          - generic [ref=e201]:
+            - text: "01"
+            - heading "Hire" [level=3] [ref=e202]
+            - paragraph [ref=e203]: Pick a role from the marketplace — HR, Support, Sales, Research. They start with a goal and safe defaults.
+          - generic [ref=e205]:
+            - text: "02"
+            - heading "Delegate" [level=3] [ref=e206]
+            - paragraph [ref=e207]: Ask the company. Work routes to the right employee, who can pull in others when needed.
+          - generic [ref=e209]:
+            - text: "03"
+            - heading "Oversee" [level=3] [ref=e210]
+            - paragraph [ref=e211]: Watch every run live, approve sensitive actions, and let employees learn from your corrections.
+        - generic [ref=e213]:
+          - figure "Sarah K. · Head of Marketing" [ref=e215]:
+            - blockquote [ref=e216]: “It is the first agent product that did not feel like a demo. The approval gates meant I actually trusted it with real work.”
+            - generic [ref=e217]:
+              - text: Sarah K.
+              - generic [ref=e218]: · Head of Marketing
+          - figure "Marcus T. · Founder" [ref=e220]:
+            - blockquote [ref=e221]: “I hired a Chief of Staff and a Support Lead in a minute. Routing and the live timeline are genuinely useful, not a gimmick.”
+            - generic [ref=e222]:
+              - text: Marcus T.
+              - generic [ref=e223]: · Founder
+          - figure "Priya S. · Agency Owner" [ref=e225]:
+            - blockquote [ref=e226]: “Per-employee spend caps and a full audit trail are why this passed our review. Setup was one provider key.”
+            - generic [ref=e227]:
+              - text: Priya S.
+              - generic [ref=e228]: · Agency Owner
+        - generic [ref=e229]:
+          - heading "Questions, answered" [level=2] [ref=e231]
+          - generic [ref=e232]:
+            - group [ref=e233]:
+              - generic "What is an AI employee?" [ref=e234] [cursor=pointer]:
+                - text: What is an AI employee?
+                - img [ref=e235]
+            - group [ref=e237]:
+              - generic "Do I need to write code or prompts?" [ref=e238] [cursor=pointer]:
+                - text: Do I need to write code or prompts?
+                - img [ref=e239]
+            - group [ref=e241]:
+              - generic "How do employees work together?" [ref=e242] [cursor=pointer]:
+                - text: How do employees work together?
+                - img [ref=e243]
+            - group [ref=e245]:
+              - generic "Can I keep humans in control?" [ref=e246] [cursor=pointer]:
+                - text: Can I keep humans in control?
+                - img [ref=e247]
+            - group [ref=e249]:
+              - generic "Do they learn?" [ref=e250] [cursor=pointer]:
+                - text: Do they learn?
+                - img [ref=e251]
+            - group [ref=e253]:
+              - generic "Can I self-host?" [ref=e254] [cursor=pointer]:
+                - text: Can I self-host?
+                - img [ref=e255]
+        - generic [ref=e259]:
+          - heading "Build your AI company today" [level=2] [ref=e260]
+          - paragraph [ref=e261]: Hire your first employee in under a minute. One provider key. Full control.
+          - generic [ref=e262]:
+            - link "Start free" [ref=e263] [cursor=pointer]:
+              - /url: /en/signup
+              - text: Start free
+              - img [ref=e264]
+            - link "View pricing" [ref=e266] [cursor=pointer]:
+              - /url: /en/pricing
+          - generic [ref=e267]:
+            - generic [ref=e268]:
+              - img [ref=e269]
+              - text: No credit card
+            - generic [ref=e272]:
+              - img [ref=e273]
+              - text: Self-host or cloud
+            - generic [ref=e276]:
+              - img [ref=e277]
+              - text: Cancel anytime
+    - contentinfo [ref=e280]:
+      - generic [ref=e281]:
+        - generic [ref=e282]:
+          - generic [ref=e283]:
+            - generic [ref=e284]:
+              - generic [ref=e285]: B
+              - generic [ref=e286]: Bitecodes
+            - paragraph [ref=e287]: Hire AI employees that do real work — with the controls, memory, and oversight a real team needs.
+            - generic [ref=e288]:
+              - link "social" [ref=e289] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e290]
+              - link "social" [ref=e293] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e294]
+              - link "social" [ref=e296] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e297]
+          - generic [ref=e301]:
+            - heading "Product" [level=4] [ref=e302]
+            - list [ref=e303]:
+              - listitem [ref=e304]:
+                - link "Features" [ref=e305] [cursor=pointer]:
+                  - /url: /en/features
+              - listitem [ref=e306]:
+                - link "Pricing" [ref=e307] [cursor=pointer]:
+                  - /url: /en/pricing
+              - listitem [ref=e308]:
+                - link "Get started" [ref=e309] [cursor=pointer]:
+                  - /url: /en/signup
+              - listitem [ref=e310]:
+                - link "Sign in" [ref=e311] [cursor=pointer]:
+                  - /url: /en/login
+          - generic [ref=e312]:
+            - heading "Company" [level=4] [ref=e313]
+            - list [ref=e314]:
+              - listitem [ref=e315]:
+                - link "About" [ref=e316] [cursor=pointer]:
+                  - /url: /en/about
+              - listitem [ref=e317]:
+                - link "Contact" [ref=e318] [cursor=pointer]:
+                  - /url: /en/contact
+              - listitem [ref=e319]:
+                - link "Docs" [ref=e320] [cursor=pointer]:
+                  - /url: /en/docs
+          - generic [ref=e321]:
+            - heading "Legal" [level=4] [ref=e322]
+            - list [ref=e323]:
+              - listitem [ref=e324]:
+                - link "Privacy" [ref=e325] [cursor=pointer]:
+                  - /url: /en/privacy
+              - listitem [ref=e326]:
+                - link "Terms" [ref=e327] [cursor=pointer]:
+                  - /url: /en/terms
+        - generic [ref=e328]:
+          - paragraph [ref=e329]: © Bitecodes. Open-core, Apache 2.0. Built for teams who ship.
+          - paragraph [ref=e330]: Made with intent — not templates.
+  - region "Notifications alt+T"

@@ -1,0 +1,39 @@
+# Bitecodes — NestJS 11 API.
+#
+# Runs FROM SOURCE via tsx. This monorepo's workspace packages export TS source
+# (package.json "main": "src/index.ts"), so a compiled dist cannot resolve them
+# at runtime with plain node. tsx transpiles the API + all workspace TS on the
+# fly, which is the reliable way to run this layout in a container.
+ARG NODE_VERSION=22
+
+FROM node:${NODE_VERSION}-bookworm-slim AS base
+RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+
+# ── Dependencies (whole workspace so every @bitecodes/* + tsx resolves) ───────
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/config/package.json ./packages/config/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/db/package.json ./packages/db/
+COPY packages/ai-core/package.json ./packages/ai-core/
+COPY packages/connectors/package.json ./packages/connectors/
+COPY packages/mcp/package.json ./packages/mcp/
+COPY packages/ai-controller/package.json ./packages/ai-controller/
+COPY packages/seo/package.json ./packages/seo/
+COPY packages/ui/package.json ./packages/ui/
+RUN pnpm install --frozen-lockfile --filter @bitecodes/api... --filter @bitecodes/db
+
+# ── Runner ────────────────────────────────────────────────────────────────────
+FROM base AS runner
+ENV NODE_ENV=production
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY . .
+
+EXPOSE 4000
+# tsx is resolved from the hoisted node_modules (a dependency of @bitecodes/db).
+CMD ["node", "--import", "tsx", "apps/api/src/main.ts"]

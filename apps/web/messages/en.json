@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "Bitecodes",
+    "tagline": "Build, run, and share AI agents that actually do the work.",
+    "poweredBy": "Powered by Bitecodes"
+  },
+  "nav": {
+    "home": "Home",
+    "agents": "Agents",
+    "workflows": "Workflows",
+    "inbox": "Inbox",
+    "content": "Content",
+    "knowledge": "Knowledge",
+    "analytics": "Analytics",
+    "settings": "Settings"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithGitHub": "Continue with GitHub"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "loading": "Loading...",
+    "error": "Something went wrong.",
+    "empty": "Nothing here yet.",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next"
+  },
+  "errors": {
+    "UNAUTHENTICATED": "You must be signed in to do that.",
+    "FORBIDDEN": "You do not have permission to do that.",
+    "NOT_FOUND": "The requested resource was not found.",
+    "VALIDATION_FAILED": "Please check your inputs and try again.",
+    "CONFLICT": "A conflict occurred. Please refresh and try again.",
+    "RATE_LIMITED": "Too many requests. Please slow down.",
+    "COST_LIMIT_EXCEEDED": "Usage limit reached. Please upgrade your plan.",
+    "KILL_SWITCH_ACTIVE": "The platform is currently paused by an administrator.",
+    "UPSTREAM_ERROR": "An upstream service is unavailable. Please try again.",
+    "NOT_LICENSED": "This feature requires an enterprise license."
+  }
+}
