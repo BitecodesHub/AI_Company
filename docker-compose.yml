@@ -132,7 +132,8 @@ services:
   migrate:
     build:
       context: .
-      dockerfile: infra/docker/Dockerfile.migrate
+      dockerfile: Dockerfile
+      target: migrate
     container_name: bitecodes-migrate
     restart: "no"
     env_file: .env
@@ -149,7 +150,8 @@ services:
   api:
     build:
       context: .
-      dockerfile: infra/docker/Dockerfile.api
+      dockerfile: Dockerfile
+      target: api
     container_name: bitecodes-api
     restart: unless-stopped
     env_file: .env
@@ -186,7 +188,8 @@ services:
   web:
     build:
       context: .
-      dockerfile: infra/docker/Dockerfile.web
+      dockerfile: Dockerfile
+      target: web
     container_name: bitecodes-web
     restart: unless-stopped
     env_file: .env
@@ -212,7 +215,8 @@ services:
     profiles: ["worker"]
     build:
       context: .
-      dockerfile: infra/docker/Dockerfile.worker
+      dockerfile: Dockerfile
+      target: worker
     container_name: bitecodes-worker
     restart: unless-stopped
     env_file: .env
