@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Play, Settings, Loader2, Send as SendIcon, Bot, User } from 'lucide-react';
+import { ArrowLeft, Play, Settings, Loader2, Send as SendIcon, Bot, User, Sparkles } from 'lucide-react';
 import {
   agentsApi, runsApi, ApiError, type AgentRun, type RunWithSteps,
 } from '../../../../../src/lib/api-client';
@@ -20,7 +20,7 @@ function renderOutput(output: unknown): string {
   if (typeof output === 'string') return output;
   if (typeof output === 'object') {
     const o = output as Record<string, unknown>;
-    for (const k of ['text', 'message', 'content', 'output', 'result', 'response', 'answer']) {
+    for (const k of ['text', 'message', 'content', 'output', 'result', 'response', 'answer', 'reply']) {
       if (typeof o[k] === 'string') return o[k] as string;
     }
     try { return JSON.stringify(output, null, 2); } catch { return String(output); }
@@ -28,8 +28,16 @@ function renderOutput(output: unknown): string {
   return String(output);
 }
 
-type ChatMsg = { role: 'user' | 'agent' | 'error'; text: string };
+const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+type ChatMsg = { role: 'user' | 'agent' | 'error'; text: string; at: string };
 type Tab = 'Playground' | 'Configuration' | 'Run history' | 'Knowledge';
+
+const SUGGESTIONS = [
+  'What can you help me with?',
+  'Give me a quick status summary.',
+  'Introduce yourself in two sentences.',
+];
 
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,8 +46,10 @@ export default function AgentDetailPage() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [running, setRunning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const aliveRef = useRef(true);
   useEffect(() => () => { aliveRef.current = false; }, []);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, running]);
 
   const agentQ = useQuery({ queryKey: ['agent', id], queryFn: () => agentsApi.get(id) });
   const agent = agentQ.data;
@@ -49,36 +59,44 @@ export default function AgentDetailPage() {
     enabled: tab === 'Run history',
   });
   const agentRuns = ((runsQ.data?.items ?? []) as AgentRun[]).filter((r) => r.agentId === id);
+  const initial = (agent?.name ?? 'A').charAt(0).toUpperCase();
 
-  async function send() {
-    const text = input.trim();
+  async function send(textArg?: string) {
+    const text = (textArg ?? input).trim();
     if (!text || running) return;
     setInput('');
-    setMessages((m) => [...m, { role: 'user', text }]);
+    setMessages((m) => [...m, { role: 'user', text, at: now() }]);
     setRunning(true);
     try {
       const { runId } = await agentsApi.run(id, text);
       let run: RunWithSteps | undefined;
-      for (let i = 0; i < 60; i++) {
+      let lastErr = 0;
+      for (let i = 0; i < 80; i++) {
         await wait(1500);
         if (!aliveRef.current) return;
-        run = await runsApi.get(runId);
+        try {
+          run = await runsApi.get(runId);
+        } catch {
+          // The row may not be visible for a beat — tolerate a few misses.
+          if (++lastErr > 5) throw new Error('lost connection to the run');
+          continue;
+        }
         const s = (run.status ?? '').toLowerCase();
         if (DONE.includes(s) || FAILED.includes(s)) break;
       }
       if (!aliveRef.current) return;
       const s = (run?.status ?? '').toLowerCase();
       if (run && DONE.includes(s)) {
-        setMessages((m) => [...m, { role: 'agent', text: renderOutput(run!.output) || '(the agent returned no text)' }]);
+        setMessages((m) => [...m, { role: 'agent', text: renderOutput(run!.output) || '(the agent returned no text)', at: now() }]);
       } else if (run && FAILED.includes(s)) {
         const reason = (run as { failureReason?: string }).failureReason;
-        setMessages((m) => [...m, { role: 'error', text: `Run ${run!.status}${reason ? `: ${reason}` : ''}` }]);
+        setMessages((m) => [...m, { role: 'error', text: `Run ${run!.status}${reason ? `: ${reason}` : ''}`, at: now() }]);
       } else {
-        setMessages((m) => [...m, { role: 'error', text: 'Still processing — the run was queued. Check Run history shortly.' }]);
+        setMessages((m) => [...m, { role: 'error', text: 'Still working — this is taking longer than usual. Check Run history shortly.', at: now() }]);
       }
     } catch (e) {
       if (!aliveRef.current) return;
-      setMessages((m) => [...m, { role: 'error', text: e instanceof ApiError ? e.message : 'Failed to start the run.' }]);
+      setMessages((m) => [...m, { role: 'error', text: e instanceof ApiError ? e.message : 'Could not reach the agent. Please try again.', at: now() }]);
     } finally {
       if (aliveRef.current) setRunning(false);
     }
@@ -86,20 +104,25 @@ export default function AgentDetailPage() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-6">
         <Link href="/app/agents" className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-sm">
-          <ArrowLeft className="w-4 h-4" /> Agents
+          <ArrowLeft className="w-4 h-4" /> Employees
         </Link>
         <span className="text-muted-foreground">/</span>
         <span className="text-sm font-medium">{agent?.name ?? 'Agent'}</span>
       </div>
 
       <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{agent?.name ?? 'Agent'}</h1>
-          <p className="text-muted-foreground mt-1">{agent?.goal || agent?.role || 'Configure and run this agent'}</p>
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg font-semibold shrink-0">
+            {agent?.avatar || initial}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight leading-tight">{agent?.name ?? 'Agent'}</h1>
+            <p className="text-muted-foreground text-sm line-clamp-1 max-w-xl">{agent?.goal || agent?.role || 'Your AI employee'}</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <button onClick={() => setTab('Configuration')}
             className="flex items-center gap-2 border border-border px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors">
             <Settings className="w-4 h-4" /> Configure
@@ -122,19 +145,31 @@ export default function AgentDetailPage() {
       </div>
 
       {tab === 'Playground' && (
-        <div className="border border-border rounded-xl overflow-hidden">
-          <div className="bg-muted/30 px-4 py-3 border-b border-border flex items-center justify-between">
-            <span className="text-sm font-medium">Playground</span>
+        <div className="border border-border rounded-2xl overflow-hidden bg-card shadow-sm">
+          <div className="bg-muted/40 px-4 py-2.5 border-b border-border flex items-center justify-between">
+            <span className="text-sm font-medium flex items-center gap-2"><Sparkles className="w-3.5 h-3.5 text-primary" /> Chat with {agent?.name ?? 'this agent'}</span>
             <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-0.5 rounded-full capitalize">
               {agent?.mode ?? 'sandbox'} mode
             </span>
           </div>
-          <div className="min-h-60 max-h-[28rem] overflow-y-auto p-4 space-y-3">
+
+          <div className="h-[26rem] overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && !running ? (
-              <div className="h-full min-h-52 flex items-center justify-center text-center text-muted-foreground">
+              <div className="h-full flex flex-col items-center justify-center text-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Bot className="w-7 h-7 text-primary" />
+                </div>
                 <div>
-                  <Play className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Send a message to run this agent</p>
+                  <p className="font-medium">Start a conversation</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">Ask {agent?.name ?? 'your employee'} anything, or try one of these:</p>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center max-w-md">
+                  {SUGGESTIONS.map((s) => (
+                    <button key={s} onClick={() => send(s)}
+                      className="text-xs border border-border rounded-full px-3 py-1.5 hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                      {s}
+                    </button>
+                  ))}
                 </div>
               </div>
             ) : (
@@ -142,17 +177,20 @@ export default function AgentDetailPage() {
                 {messages.map((m, i) => (
                   <div key={i} className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {m.role !== 'user' && (
-                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Bot className="w-4 h-4 text-primary" />
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 text-white text-xs font-semibold">
+                        {m.role === 'error' ? '!' : (agent?.avatar || initial)}
                       </div>
                     )}
-                    <div className={`max-w-[80%] rounded-xl px-3.5 py-2 text-sm whitespace-pre-wrap ${
-                      m.role === 'user' ? 'bg-primary text-primary-foreground'
-                        : m.role === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                          : 'bg-muted'
-                    }`}>{m.text}</div>
+                    <div className="max-w-[78%]">
+                      <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
+                        m.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-md'
+                          : m.role === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                            : 'bg-muted rounded-bl-md'
+                      }`}>{m.text}</div>
+                      <div className={`text-[10px] text-muted-foreground/70 mt-1 ${m.role === 'user' ? 'text-right' : 'text-left'}`}>{m.at}</div>
+                    </div>
                     {m.role === 'user' && (
-                      <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center shrink-0">
                         <User className="w-4 h-4 text-muted-foreground" />
                       </div>
                     )}
@@ -160,25 +198,29 @@ export default function AgentDetailPage() {
                 ))}
                 {running && (
                   <div className="flex gap-2.5 justify-start">
-                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Bot className="w-4 h-4 text-primary" />
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 text-white text-xs font-semibold">
+                      {agent?.avatar || initial}
                     </div>
-                    <div className="bg-muted rounded-xl px-3.5 py-2 text-sm flex items-center gap-2 text-muted-foreground">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Thinking…
+                    <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
                 )}
               </>
             )}
+            <div ref={endRef} />
           </div>
-          <div className="border-t border-border p-3 flex gap-2">
+
+          <div className="border-t border-border p-3 flex items-center gap-2">
             <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="Type a message to this agent…" disabled={running}
-              className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground disabled:opacity-60" />
-            <button onClick={send} disabled={running || !input.trim()}
-              className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-              {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SendIcon className="w-3.5 h-3.5" />} Send
+              placeholder={`Message ${agent?.name ?? 'this agent'}…`} disabled={running}
+              className="flex-1 text-sm bg-background border border-border rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors placeholder:text-muted-foreground disabled:opacity-60" />
+            <button onClick={() => send()} disabled={running || !input.trim()}
+              className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5 shrink-0">
+              {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendIcon className="w-4 h-4" />} Send
             </button>
           </div>
         </div>
@@ -230,12 +272,10 @@ export default function AgentDetailPage() {
         </div>
       )}
 
-      {/* Employee controls (activation, approvals, guardrails) */}
       <div className="mt-6">
         <ControlPanel agentId={id} />
       </div>
 
-      {/* Organization graph — supervises / watches / delegates edges */}
       <div className="mt-6">
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Organization</h2>
         <OrgGraph highlightAgentId={id} />

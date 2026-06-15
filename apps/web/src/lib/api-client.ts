@@ -76,7 +76,7 @@ export const api = {
 // ── Domain types ──────────────────────────────────────────────────────────────
 
 export interface Agent {
-  id: string; name: string; role: string; goal?: string;
+  id: string; name: string; role: string; goal?: string; avatar?: string | null;
   mode: 'sandbox' | 'production'; costTier: 'fast' | 'smart' | 'auto'; createdAt: string;
 }
 export interface AgentRun {

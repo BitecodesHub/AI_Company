@@ -3,11 +3,10 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { z } from 'zod';
 import { AgentInputSchema, StartRunSchema } from '@bitecodes/shared';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-import { inngest } from '../inngest/client.js';
+import { executeAgentRun } from '../inngest/agent.run.js';
 import type { AgentInput, StartRun } from '@bitecodes/shared';
 import type { Request } from 'express';
 import { AgentService, type HireInput } from './agent.service.js';
-import crypto from 'node:crypto';
 
 // Marketplace "hire" payload — supports the router flag + routing keywords that
 // AgentInputSchema does not carry (kept out of the shared contract for now).
@@ -136,8 +135,22 @@ export class AgentController {
     @Body(new ZodValidationPipe(StartRunSchema)) body: StartRun,
     @Req() req: Request,
   ) {
-    const runId = crypto.randomUUID();
-    await inngest.send({ name: 'agent/run', data: { runId, agentId, input: body.input } });
+    const ctx = this.ctx(req);
+    // Create the run row, then execute IN-PROCESS — no external Inngest server
+    // is required. Fire-and-forget; the client polls GET /v1/runs/:id for status.
+    const runId = await this.agentService.createRun(agentId, body.input, ctx);
+    const inlineStep = {
+      async run<T>(_id: string, fn: () => Promise<T>): Promise<T> { return fn(); },
+      async waitForEvent() { return null; },
+      async sendEvent() { return undefined; },
+    };
+    const logger = {
+      warn: (o: unknown, m?: string) => console.warn(m ?? '', o),
+      error: (o: unknown, m?: string) => console.error(m ?? '', o),
+    };
+    void executeAgentRun({ event: { data: { runId } }, step: inlineStep, logger }).catch(
+      (err: unknown) => console.error('[agent/run] inline execution failed:', err),
+    );
     return { runId, agentId, status: 'queued' };
   }
 }

@@ -4,7 +4,7 @@
  */
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { eq, and, isNull, desc } from 'drizzle-orm';
-import { DrizzleService, agents, agentVersions, employeeControls } from '../drizzle/drizzle.service.js';
+import { DrizzleService, agents, agentVersions, agentRuns, employeeControls } from '../drizzle/drizzle.service.js';
 import type { AgentInput } from '@bitecodes/shared';
 import crypto from 'node:crypto';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
@@ -261,5 +261,36 @@ export class AgentService {
       if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Agent not found.' });
       return updated;
     });
+  }
+
+  /** Create a queued agent_runs row for the agent's active version. Returns runId. */
+  async createRun(
+    agentId: string,
+    input: unknown,
+    ctx: { organizationId: string; workspaceId: string },
+  ): Promise<string> {
+    const runId = crypto.randomUUID();
+    await this.drizzle.withTenant(ctx.organizationId, ctx.workspaceId, async (tx) => {
+      const [agent] = await (tx as any)
+        .select({ activeVersionId: agents.activeVersionId })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), isNull(agents.deletedAt)))
+        .limit(1);
+      if (!agent) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Agent not found.' });
+      if (!agent.activeVersionId) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Agent has no active version.' });
+      }
+      await (tx as any).insert(agentRuns).values({
+        id: runId,
+        organizationId: ctx.organizationId,
+        workspaceId: ctx.workspaceId,
+        agentId,
+        agentVersionId: agent.activeVersionId,
+        triggerType: 'manual',
+        status: 'queued',
+        input: input ?? null,
+      });
+    });
+    return runId;
   }
 }
