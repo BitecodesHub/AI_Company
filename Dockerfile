@@ -45,6 +45,24 @@ RUN pnpm --filter @bitecodes/web build
 # ── runtime: one image, role chosen by $SERVICE (default app = API + web) ─────
 FROM build AS app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+
+# ── Embedded PostgreSQL 16 + pgvector ─────────────────────────────────────────
+# Makes the single container self-contained: it runs its own Postgres on
+# localhost:5432, so NO external database is required ("only the docker on
+# Render"). The entrypoint starts it automatically when DATABASE_URL is unset.
+# Mount a persistent disk at $PGDATA for data to survive deploys/restarts.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gnupg \
+ && wget -qO /usr/share/keyrings/pgdg.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+ && echo "deb [signed-by=/usr/share/keyrings/pgdg.asc] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends postgresql-16 postgresql-16-pgvector \
+ && rm -rf /var/lib/apt/lists/*
+ENV PATH="/usr/lib/postgresql/16/bin:${PATH}"
+# PGDATA is a SUBDIRECTORY of the disk mount (/var/lib/postgresql/data) so initdb
+# does not trip over the ext4 `lost+found` that exists at a Render disk's root.
+ENV PGDATA=/var/lib/postgresql/data/pgdata
+
 RUN chmod +x infra/docker/entrypoint.sh
 # Web on $PORT (default 3000, Render injects $PORT); API on 4000 (combined role).
 EXPOSE 3000 4000

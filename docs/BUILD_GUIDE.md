@@ -217,6 +217,7 @@ Bitecodes runs on **one** provider selected by `AI_PROVIDER`. All AI traffic —
 | `META_APP_ID` / `META_APP_SECRET` | Instagram + Facebook Pages |
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack |
 | `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` | Notion |
+| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` · `MICROSOFT_TENANT_ID` · `MICROSOFT_REDIRECT_URI` | Microsoft Teams (Microsoft Graph) |
 
 ### Email, billing, observability, webhooks
 | Variable | Purpose |

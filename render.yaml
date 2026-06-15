@@ -1,50 +1,42 @@
 # Render Blueprint — deploys Bitecodes from the single ./Dockerfile.
 #
-# ONE web service runs the whole product: the combined `app` role serves the
-# Next.js web app on $PORT and the NestJS API on localhost:4000, and the web app
-# proxies the API same-origin. No API URL is configured anywhere — the browser
-# only ever talks to the public app URL. The DB migrate (pgvector + schema + RLS)
-# runs as a pre-deploy step.
+# ONE web service runs the WHOLE product: the combined `app` role serves the
+# Next.js web app on $PORT and the NestJS API on localhost:4000, the web app
+# proxies the API same-origin, AND the container runs its OWN PostgreSQL 16 +
+# pgvector on localhost:5432. No external database is required — the single
+# container is fully self-contained.
 #
-# NOTE on Postgres: Render's managed Postgres user is the database OWNER (not a
-# superuser). It CAN enable pgvector and push the schema. Because the schema
-# uses FORCE ROW LEVEL SECURITY, RLS is enforced even for the owner, so the app
-# connects with the same Render connection string for both DATABASE_URL and
-# DATABASE_SUPERUSER_URL. The separate `bitecodes_app` role from setup-rls.sql is
-# only needed on a self-managed superuser Postgres; on Render it is skipped.
-
-databases:
-  - name: bitecodes-db
-    plan: free
-    postgresMajorVersion: "16"
+# PERSISTENCE: the database lives on a Render disk mounted at
+# /var/lib/postgresql/data, so data survives deploys and restarts. (Without a
+# disk the DB is recreated empty on each deploy; the app self-heals the schema
+# and the demo account auto-provisions, but user data would not persist.)
+#
+# For a horizontally-scaled or higher-traffic deployment, switch to a managed
+# Postgres instead: add a `databases:` entry, set DATABASE_URL +
+# DATABASE_SUPERUSER_URL from it, and remove EMBEDDED_DB / the disk. The
+# entrypoint uses the external database automatically when DATABASE_URL is set.
 
 services:
-  - type: keyvalue            # Redis-compatible
-    name: bitecodes-redis
-    plan: free
-    ipAllowList: []
-
   - type: web
     name: bitecodes-app
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    plan: starter
+    plan: starter            # a paid instance type is required to attach a disk
     healthCheckPath: /
-    preDeployCommand: "SERVICE=migrate bash infra/docker/entrypoint.sh"
+    disk:
+      name: bitecodes-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
     envVars:
       - key: SERVICE
-        value: app             # combined API + web
+        value: app             # combined API + web (+ embedded Postgres)
+      - key: EMBEDDED_DB
+        value: "1"             # run the bundled Postgres on localhost:5432
       - key: NODE_ENV
         value: production
       - key: AI_GATEWAY_MODE
         value: mock            # set blank + AI_PROVIDER/key to go live
-      - key: DATABASE_URL
-        fromDatabase: { name: bitecodes-db, property: connectionString }
-      - key: DATABASE_SUPERUSER_URL
-        fromDatabase: { name: bitecodes-db, property: connectionString }
-      - key: REDIS_URL
-        fromService: { name: bitecodes-redis, type: keyvalue, property: connectionString }
       - key: AUTH_SECRET
         generateValue: true
       - key: ENCRYPTION_KEY

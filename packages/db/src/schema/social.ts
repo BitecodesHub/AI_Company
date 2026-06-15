@@ -12,6 +12,7 @@ export const socialPlatformEnum = pgEnum('social_platform', [
   'tiktok',
   'gbp',
   'wordpress',
+  'teams',
 ]);
 export const contentStatusEnum = pgEnum('content_status', [
   'idea',

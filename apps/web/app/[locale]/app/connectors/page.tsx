@@ -1,6 +1,6 @@
 'use client';
 
-import { Plug, Mail, MessageSquare, Twitter, Linkedin, Facebook, FileText, Github, Check, Loader2 } from 'lucide-react';
+import { Plug, Mail, MessageSquare, Twitter, Linkedin, Facebook, FileText, Github, Users, Check, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { connectorsApi, type Connector as LiveConnector } from '../../../../src/lib/api-client';
@@ -21,6 +21,7 @@ const CONNECTORS: CatalogConnector[] = [
   { key: 'x',        name: 'X',        description: 'Publish and monitor posts.',                     icon: Twitter },
   { key: 'linkedin', name: 'LinkedIn', description: 'Publish updates and read engagement.',           icon: Linkedin },
   { key: 'meta',     name: 'Meta',     description: 'Manage Instagram and Facebook Pages.',           icon: Facebook },
+  { key: 'teams',    name: 'Microsoft Teams', description: 'Read channels & chats via Microsoft Graph; posting requires approval.', icon: Users },
   { key: 'notion',   name: 'Notion',   description: 'Read and write workspace documents.',            icon: FileText },
   { key: 'github',   name: 'GitHub',   description: 'Open issues and pull requests.',                 icon: Github },
 ];
