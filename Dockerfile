@@ -63,6 +63,12 @@ ENV PATH="/usr/lib/postgresql/16/bin:${PATH}"
 # does not trip over the ext4 `lost+found` that exists at a Render disk's root.
 ENV PGDATA=/var/lib/postgresql/data/pgdata
 
+# ── Embedded Inngest dev server ───────────────────────────────────────────────
+# Processes agent/run (and other) events IN-container, so the single self-contained
+# container actually executes agent runs with no external Inngest service. The
+# entrypoint starts `inngest dev` and points it at the API's /api/inngest handler.
+RUN npm install -g inngest-cli@latest && inngest version
+
 RUN chmod +x infra/docker/entrypoint.sh
 # Web on $PORT (default 3000, Render injects $PORT); API on 4000 (combined role).
 EXPOSE 3000 4000

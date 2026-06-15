@@ -86,6 +86,28 @@ stop_embedded_db() {
   su postgres -c "pg_ctl --pgdata='$PGDATA' -m fast stop" >/dev/null 2>&1 || true
 }
 
+# Run the Inngest dev server in-container (executes agent/run etc.) unless Inngest
+# Cloud is configured (INNGEST_SIGNING_KEY) or explicitly disabled (EMBEDDED_INNGEST=0).
+use_embedded_inngest() {
+  [ "${EMBEDDED_INNGEST:-}" = "0" ] && return 1
+  [ -n "${INNGEST_SIGNING_KEY:-}" ] && return 1
+  return 0
+}
+
+inngest_pid=""
+start_inngest_dev() {
+  echo "[entrypoint] starting in-container Inngest dev server (:8288 → :4000/api/inngest)…"
+  (
+    # Wait until the API serves its Inngest endpoint, then run the dev server.
+    for _ in $(seq 1 60); do
+      wget -qO- "http://localhost:4000/api/inngest" >/dev/null 2>&1 && break
+      sleep 2
+    done
+    exec inngest dev -u "http://localhost:4000/api/inngest" --no-discovery
+  ) &
+  inngest_pid=$!
+}
+
 # ── Migration steps (pgvector + schema + RLS). Subshell so `set -e` makes the
 #    whole thing fail fast and return non-zero to the caller. ──────────────────
 run_migrate() (
@@ -155,16 +177,20 @@ case "${SERVICE:-app}" in
     # web serves the public $PORT and proxies /v1, /api/auth, /socket.io to it.
     if use_embedded_db; then start_embedded_db; fi
     ensure_schema
+    if use_embedded_inngest; then export INNGEST_DEV=1; fi
     echo "[entrypoint] app: starting API (:4000) + web (:${PORT:-3000})…"
     PORT=4000 node -r ./infra/docker/api-dist-paths.cjs apps/api/dist/apps/api/src/main.js &
     api_pid=$!
     pnpm --filter @bitecodes/web exec next start -p "${PORT:-3000}" -H 0.0.0.0 &
     web_pid=$!
-    # If either process exits, tear the container down so the orchestrator restarts it.
-    wait -n
+    if use_embedded_inngest; then start_inngest_dev; fi
+    # If either CORE process (API/web) exits, tear the container down so the
+    # orchestrator restarts it. A crash of the Inngest dev server alone does not.
+    wait -n "$api_pid" "$web_pid"
     code=$?
-    echo "[entrypoint] a process exited (code $code); stopping the others."
+    echo "[entrypoint] a core process exited (code $code); stopping the others."
     kill "$api_pid" "$web_pid" 2>/dev/null || true
+    [ -n "$inngest_pid" ] && kill "$inngest_pid" 2>/dev/null || true
     stop_embedded_db
     wait 2>/dev/null || true
     exit "$code"
