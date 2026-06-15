@@ -28,6 +28,24 @@ export default function KnowledgePage() {
     onError: (e) => toast.error(e instanceof ApiError ? e.message : 'Failed to create knowledge base'),
   });
 
+  // Add a pasted-text document to a specific knowledge base.
+  const [docKbId, setDocKbId] = useState<string | null>(null);
+  const [docTitle, setDocTitle] = useState('');
+  const [docText, setDocText] = useState('');
+  const docMut = useMutation({
+    mutationFn: () => knowledgeApi.addDocument(docKbId!, {
+      sourceType: 'text',
+      title: docTitle.trim() || 'Untitled',
+      content: docText.trim(),
+    }),
+    onSuccess: () => {
+      toast.success('Document added — your employees can now search and cite it');
+      setDocKbId(null); setDocTitle(''); setDocText('');
+      qc.invalidateQueries({ queryKey: ['knowledge-bases'] });
+    },
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : 'Failed to add document'),
+  });
+
   function closeModal() {
     if (createMut.isPending) return;
     setModalOpen(false);
@@ -88,8 +106,12 @@ export default function KnowledgePage() {
               </div>
               <h3 className="font-semibold mb-1">{kb.name}</h3>
               <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">{kb.description || 'No description'}</p>
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
-                <FileText className="w-3.5 h-3.5" /> {kb.embeddingModel}
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+                <span className="inline-flex items-center gap-2 text-xs text-muted-foreground"><FileText className="w-3.5 h-3.5" /> Searchable text</span>
+                <button onClick={() => setDocKbId(kb.id)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                  <Plus className="w-3.5 h-3.5" /> Add text
+                </button>
               </div>
             </div>
           ))}
@@ -122,6 +144,39 @@ export default function KnowledgePage() {
                 <button type="submit" disabled={!name.trim() || createMut.isPending}
                   className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
                   {createMut.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add text document modal */}
+      {docKbId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => { if (!docMut.isPending) setDocKbId(null); }}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Add a text document</h2>
+              <button onClick={() => { if (!docMut.isPending) setDocKbId(null); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); if (docText.trim()) docMut.mutate(); }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1.5" htmlFor="doc-title">Title</label>
+                <input id="doc-title" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} autoFocus
+                  placeholder="e.g. Refund policy"
+                  className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5" htmlFor="doc-text">Content <span className="text-destructive">*</span></label>
+                <textarea id="doc-text" value={docText} onChange={(e) => setDocText(e.target.value)} rows={8} required
+                  placeholder="Paste the text your employees should be able to search and cite…"
+                  className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setDocKbId(null)} className="flex-1 border border-border px-4 py-2.5 rounded-lg text-sm hover:bg-muted transition-colors">Cancel</button>
+                <button type="submit" disabled={!docText.trim() || docMut.isPending}
+                  className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                  {docMut.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</> : 'Add document'}
                 </button>
               </div>
             </form>

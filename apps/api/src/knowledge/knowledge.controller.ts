@@ -2,7 +2,6 @@ import { Controller, Get, Post, Param, Body, HttpCode, Req } from '@nestjs/commo
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-import { inngest } from '../inngest/client.js';
 import type { Request } from 'express';
 import { KnowledgeService } from './knowledge.service.js';
 
@@ -44,12 +43,13 @@ export class KnowledgeController {
   @ApiOperation({ summary: 'Upload a document to a knowledge base' })
   async addDocument(@Param('id') kbId: string, @Body(new ZodValidationPipe(AddDocumentSchema)) body: z.infer<typeof AddDocumentSchema>, @Req() req: Request) {
     const ctx = this.ctx(req);
-    let doc: any = { id: `doc-${Date.now()}`, kbId, status: 'pending' };
-    if (ctx.organizationId) {
-      doc = await this.knowledgeService.createDocument(kbId, { sourceType: body.sourceType as any, sourceRef: body.sourceRef, title: body.title }, ctx);
-    }
-    await inngest.send({ name: 'kb/ingest', data: { documentId: doc.id } });
-    return doc;
+    if (!ctx.organizationId) return { id: `doc-${Date.now()}`, kbId, status: 'pending' };
+    // Ingest in-process: chunk + store now (no external Inngest server needed).
+    return this.knowledgeService.createDocument(
+      kbId,
+      { sourceType: body.sourceType, sourceRef: body.sourceRef, title: body.title, content: body.content },
+      ctx,
+    );
   }
 
   @Post(':id/urls')
@@ -57,12 +57,9 @@ export class KnowledgeController {
   @ApiOperation({ summary: 'Crawl a URL into a knowledge base' })
   async addUrl(@Param('id') kbId: string, @Body(new ZodValidationPipe(AddUrlSchema)) body: z.infer<typeof AddUrlSchema>, @Req() req: Request) {
     const ctx = this.ctx(req);
-    let doc: any = { id: `doc-url-${Date.now()}`, kbId, url: body.url, status: 'pending' };
-    if (ctx.organizationId) {
-      doc = await this.knowledgeService.createDocument(kbId, { sourceType: 'url', sourceRef: body.url }, ctx);
-    }
-    await inngest.send({ name: 'kb/ingest', data: { documentId: doc.id, url: body.url } });
-    return doc;
+    if (!ctx.organizationId) return { id: `doc-url-${Date.now()}`, kbId, url: body.url, status: 'pending' };
+    // Fetch + chunk + store in-process.
+    return this.knowledgeService.createDocument(kbId, { sourceType: 'url', sourceRef: body.url, title: body.url }, ctx);
   }
 
   @Get(':id/documents')

@@ -13,7 +13,7 @@ import { useOnboarding } from '../../hooks/use-onboarding';
 
 const STEP_META: Record<string, { label: string; href: string }> = {
   hire_employee: { label: 'Hire your first employee', href: '/app/agents/new' },
-  first_run: { label: 'Run an employee for the first time', href: '/app/agents' },
+  first_run: { label: 'Communicate with an employee', href: '/app/agents' },
   connect_tool: { label: 'Connect a tool', href: '/app/connectors' },
   invite_team: { label: 'Invite a teammate', href: '/app/admin/invitations' },
 };

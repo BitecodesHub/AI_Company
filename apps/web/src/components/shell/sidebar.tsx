@@ -170,7 +170,9 @@ export function Sidebar({ locale }: SidebarProps) {
 
       {/* Footer */}
       <div className="px-3 py-3 space-y-1.5 border-t border-border">
-        <button className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 rounded-xl text-sm font-medium transition-colors border border-violet-200/50 dark:border-violet-500/20">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('bitecodes:open-controller'))}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 rounded-xl text-sm font-medium transition-colors border border-violet-200/50 dark:border-violet-500/20">
           <Zap className="w-4 h-4" />
           AI Controller
           <kbd className="ml-auto text-[10px] bg-white/50 dark:bg-black/20 px-1.5 py-0.5 rounded-md opacity-60">⌘K</kbd>

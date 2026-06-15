@@ -60,7 +60,7 @@ export default function DashboardPage() {
     { label: 'Employees', value: agents.length, sub: 'on your team', icon: Bot, color: 'from-blue-500 to-indigo-600', href: '/app/agents' },
     { label: 'Content Drafts', value: drafts.length, sub: 'ready to review', icon: Rss, color: 'from-emerald-500 to-teal-600', href: '/app/content' },
     { label: 'Inbox Messages', value: inbox.length, sub: 'in your inbox', icon: Inbox, color: 'from-amber-500 to-orange-600', href: '/app/inbox' },
-    { label: 'Runs Today', value: runsToday, sub: 'agent runs', icon: Zap, color: 'from-violet-500 to-purple-600', href: '/app/analytics' },
+    { label: 'Tasks Today', value: runsToday, sub: 'handled by your team', icon: Zap, color: 'from-violet-500 to-purple-600', href: '/app/analytics' },
   ];
 
   const quickActions = [

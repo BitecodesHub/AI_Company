@@ -21,6 +21,8 @@ const HireSchema = z.object({
   routingKeywords: z.array(z.string().max(40)).max(40).optional(),
 });
 
+const SetKnowledgeSchema = z.object({ knowledgeBaseIds: z.array(z.string().uuid()).max(20) });
+
 @ApiTags('agents')
 @ApiBearerAuth()
 @Controller('v1/agents')
@@ -125,6 +127,26 @@ export class AgentController {
     const ctx = this.ctx(req);
     if (!ctx.organizationId) return { agentId: id, activeVersionId: versionId };
     return this.agentService.activateVersion(id, versionId, ctx);
+  }
+
+  @Get(':id/knowledge')
+  @ApiOperation({ summary: 'List knowledge bases attached to an agent' })
+  async getKnowledge(@Param('id') id: string, @Req() req: Request) {
+    const ctx = this.ctx(req);
+    if (!ctx.organizationId) return { knowledgeBaseIds: [] };
+    return { knowledgeBaseIds: await this.agentService.getKnowledge(id, ctx) };
+  }
+
+  @Patch(':id/knowledge')
+  @ApiOperation({ summary: 'Attach knowledge bases to an agent' })
+  async setKnowledge(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(SetKnowledgeSchema)) body: z.infer<typeof SetKnowledgeSchema>,
+    @Req() req: Request,
+  ) {
+    const ctx = this.ctx(req);
+    if (!ctx.organizationId) return { knowledgeBaseIds: body.knowledgeBaseIds };
+    return this.agentService.setKnowledge(id, body.knowledgeBaseIds, ctx);
   }
 
   @Post(':id/runs')

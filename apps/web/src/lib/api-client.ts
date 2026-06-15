@@ -124,6 +124,9 @@ export const agentsApi = {
   remove:         (id: string) => api.delete<void>(`/v1/agents/${id}`),
   run:            (id: string, input?: unknown) => api.post<{ runId: string }>(`/v1/agents/${id}/runs`, { input }),
   listVersions:   (id: string) => api.get<{ items: unknown[] }>(`/v1/agents/${id}/versions`),
+  getKnowledge:   (id: string) => api.get<{ knowledgeBaseIds: string[] }>(`/v1/agents/${id}/knowledge`),
+  setKnowledge:   (id: string, knowledgeBaseIds: string[]) =>
+                    api.patch<{ knowledgeBaseIds: string[] }>(`/v1/agents/${id}/knowledge`, { knowledgeBaseIds }),
 };
 
 export interface RunStep {
@@ -168,6 +171,31 @@ export const controlsApi = {
   update:     (agentId: string, patch: Partial<EmployeeControls>) => api.patch<EmployeeControls>(`/v1/agents/${agentId}/controls`, patch),
   activate:   (agentId: string) => api.post<EmployeeControls>(`/v1/agents/${agentId}/controls/activate`),
   deactivate: (agentId: string) => api.post<EmployeeControls>(`/v1/agents/${agentId}/controls/deactivate`),
+};
+
+// ── AI Controller (natural-language command bus) ────────────────────────────
+export interface ControllerPlannedAction {
+  name: string;
+  args: Record<string, unknown>;
+  target: 'browser' | 'server' | 'both';
+  riskClass: 'safe' | 'confirm' | 'destructive';
+  status: 'executed' | 'ready' | 'acknowledged' | 'invalid';
+  result?: unknown;
+  note?: string;
+  error?: string;
+}
+export interface ControllerClientAction { to: string; label: string; }
+export interface ControllerResult {
+  sessionId: string;
+  command: string;
+  summary: string;
+  actions: ControllerPlannedAction[];
+  clientActions: ControllerClientAction[];
+}
+export const controllerApi = {
+  start:   () => api.post<{ sessionId: string }>('/v1/controller/sessions', {}),
+  command: (sessionId: string, command: string) =>
+             api.post<ControllerResult>(`/v1/controller/sessions/${sessionId}/command`, { command }),
 };
 
 // ── Orchestration (hierarchy + routing) ─────────────────────────────────────
@@ -251,7 +279,7 @@ export const knowledgeApi = {
   list:           () => api.get<{ items: KnowledgeBase[]; nextCursor: string | null }>('/v1/knowledge-bases'),
   create:         (input: { name: string; description?: string }) => api.post<KnowledgeBase>('/v1/knowledge-bases', input),
   listDocuments:  (id: string) => api.get<{ items: Document[] }>(`/v1/knowledge-bases/${id}/documents`),
-  addDocument:    (id: string, input: { sourceType: string; sourceRef?: string; title?: string }) =>
+  addDocument:    (id: string, input: { sourceType: string; sourceRef?: string; title?: string; content?: string }) =>
                     api.post<Document>(`/v1/knowledge-bases/${id}/documents`, input),
   addUrl:         (id: string, url: string, depth?: number) =>
                     api.post<Document>(`/v1/knowledge-bases/${id}/urls`, { url, depth }),

@@ -16,13 +16,13 @@
  */
 import { NonRetriableError } from 'inngest';
 import type OpenAI from 'openai';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { inngest } from './client.js';
 import { ModelRouter, ProviderError } from '@bitecodes/ai-core';
 import { PromptAssembler } from '@bitecodes/ai-core';
 import { Guardrails } from '@bitecodes/ai-core';
 import type { AgentVersionConfig } from '@bitecodes/ai-core';
-import { agentRuns, agents, agentVersions, runSteps, approvals, auditLogs, employeeControls, mcpTools, agentMessages, agentMemories, onboardingStates } from '@bitecodes/db';
+import { agentRuns, agents, agentVersions, runSteps, approvals, auditLogs, employeeControls, mcpTools, agentMessages, agentMemories, onboardingStates, documents, documentChunks } from '@bitecodes/db';
 import { withTenant, systemDb } from './runtime-db.js';
 import { runsEmitter } from '../gateway/runs-emitter.js';
 import { companyEmitter } from '../gateway/company-emitter.js';
@@ -88,7 +88,13 @@ export async function executeAgentRun(ctx: {
 
       return withTenant(orgId, wsId, async (tx) => {
         const [agent] = await tx
-          .select({ defaultModel: agents.defaultModel, costTier: agents.costTier })
+          .select({
+            name: agents.name,
+            role: agents.role,
+            goal: agents.goal,
+            defaultModel: agents.defaultModel,
+            costTier: agents.costTier,
+          })
           .from(agents)
           .where(eq(agents.id, run.agentId))
           .limit(1);
@@ -146,7 +152,14 @@ export async function executeAgentRun(ctx: {
           agentId: run.agentId,
           defaultModel: agent.defaultModel ?? null,
           costTier: agent.costTier ?? 'auto',
-          systemPrompt: version.systemPrompt || 'You are a helpful AI assistant.',
+          // Persona: feed the employee's identity (name/role/goal) to the model so
+          // it answers in character instead of defaulting to "I'm Claude".
+          systemPrompt: [
+            `You are ${agent.name}, ${agent.role}.`,
+            agent.goal ? `Your goal: ${agent.goal}.` : '',
+            (version.systemPrompt ?? '').trim(),
+            'Always stay in character as this employee. Never claim to be Claude, an AI made by Anthropic, or a generic AI assistant — respond as your role.',
+          ].filter(Boolean).join('\n\n'),
           config,
           controls,
           input: run.input,
@@ -208,6 +221,38 @@ export async function executeAgentRun(ctx: {
       });
     });
 
+    // ── Step 3a-bis: retrieve knowledge base context (guarded; never fatal) ──
+    const knowledge = await step.run('load-knowledge', async () => {
+      const kbIds = runData.config.knowledgeBaseIds ?? [];
+      if (!kbIds.length) return [] as Array<{ title: string; content: string }>;
+      const query = typeof runData.input === 'string' ? runData.input : JSON.stringify(runData.input ?? '');
+      try {
+        return await withTenant(orgId, wsId, async (tx) => {
+          const rows = await tx
+            .select({ content: documentChunks.content, title: documents.title })
+            .from(documentChunks)
+            .innerJoin(documents, eq(documentChunks.documentId, documents.id))
+            .where(and(eq(documentChunks.organizationId, orgId), inArray(documents.knowledgeBaseId, kbIds)))
+            .limit(400);
+          const terms = Array.from(new Set(query.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3)));
+          return rows
+            .map((r) => {
+              const lc = r.content.toLowerCase();
+              let score = 0;
+              for (const t of terms) if (lc.includes(t)) score++;
+              return { title: r.title ?? 'Untitled', content: r.content, score };
+            })
+            .filter((r) => r.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 4)
+            .map((r) => ({ title: r.title, content: r.content }));
+        });
+      } catch (err) {
+        logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'knowledge retrieval failed');
+        return [] as Array<{ title: string; content: string }>;
+      }
+    });
+
     // ── Step 3b: assemble messages (system + memory + input) ─────────────────
     const initialMessages = await step.run('assemble-prompt', async () => {
       const scan = guardrails.scanUserInput(
@@ -215,8 +260,12 @@ export async function executeAgentRun(ctx: {
       );
       if (!scan.safe) logger.warn({ flags: scan.flags }, 'Prompt injection flagged in user input');
 
+      const kbContext = knowledge.length
+        ? 'Use the following knowledge base excerpts to answer the user. Cite the source title in square brackets, e.g. [Title]. If the answer is not in these excerpts, say you could not find it in the knowledge base.\n\n'
+          + knowledge.map((k) => `[${k.title}]\n${k.content}`).join('\n\n---\n\n')
+        : '';
       return promptAssembler.build({
-        systemPrompt: runData.systemPrompt,
+        systemPrompt: kbContext ? `${runData.systemPrompt}\n\n${kbContext}` : runData.systemPrompt,
         config: runData.config,
         memory,
         userInput: runData.input,

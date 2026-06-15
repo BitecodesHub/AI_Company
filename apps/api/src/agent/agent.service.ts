@@ -293,4 +293,46 @@ export class AgentService {
     });
     return runId;
   }
+
+  /** Read the knowledge bases attached to an agent's active version. */
+  async getKnowledge(agentId: string, ctx: { organizationId: string; workspaceId: string }): Promise<string[]> {
+    return this.drizzle.withTenant(ctx.organizationId, ctx.workspaceId, async (tx) => {
+      const [agent] = await (tx as any)
+        .select({ activeVersionId: agents.activeVersionId })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), isNull(agents.deletedAt)))
+        .limit(1);
+      if (!agent?.activeVersionId) return [];
+      const [version] = await (tx as any)
+        .select({ config: agentVersions.config })
+        .from(agentVersions)
+        .where(eq(agentVersions.id, agent.activeVersionId))
+        .limit(1);
+      const cfg = (version?.config ?? {}) as { knowledgeBaseIds?: string[] };
+      return Array.isArray(cfg.knowledgeBaseIds) ? cfg.knowledgeBaseIds : [];
+    });
+  }
+
+  /** Attach a set of knowledge bases to the agent's active version (merged into config). */
+  async setKnowledge(agentId: string, knowledgeBaseIds: string[], ctx: { organizationId: string; workspaceId: string }) {
+    return this.drizzle.withTenant(ctx.organizationId, ctx.workspaceId, async (tx) => {
+      const [agent] = await (tx as any)
+        .select({ activeVersionId: agents.activeVersionId })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), isNull(agents.deletedAt)))
+        .limit(1);
+      if (!agent?.activeVersionId) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Agent has no active version.' });
+      const [version] = await (tx as any)
+        .select({ config: agentVersions.config })
+        .from(agentVersions)
+        .where(eq(agentVersions.id, agent.activeVersionId))
+        .limit(1);
+      const cfg = { ...((version?.config ?? {}) as Record<string, unknown>), knowledgeBaseIds };
+      await (tx as any)
+        .update(agentVersions)
+        .set({ config: cfg })
+        .where(eq(agentVersions.id, agent.activeVersionId));
+      return { knowledgeBaseIds };
+    });
+  }
 }

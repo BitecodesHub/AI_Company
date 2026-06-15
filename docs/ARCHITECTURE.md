@@ -115,6 +115,8 @@ Shared logic lives in `packages/*` and is imported by both `web` and `api`, so a
 - `@xyflow/react` 12.x (React Flow) · `socket.io-client` 4.x
 - `next-intl` (i18n) · `next-themes` (dark mode) · `cmdk` (command palette)
 - `next-sitemap` · `schema-dts` (typed JSON-LD)
+- In-house lightweight markdown renderer for agent chat messages (no external dependency)
+- `sonner` (toasts)
 
 **apps/web**
 - `sonner` (toast notifications)
