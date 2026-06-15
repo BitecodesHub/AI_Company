@@ -12,6 +12,19 @@ import { AppModule } from './app.module.js';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
+  // Fail loudly (but keep the public site up) when critical env is missing.
+  // Without DATABASE_URL, pg silently defaults to localhost:5432, so every DB
+  // and auth request 500s with a confusing `ECONNREFUSED 127.0.0.1:5432`.
+  const requiredEnv = ['DATABASE_URL', 'AUTH_SECRET', 'ENCRYPTION_KEY'];
+  const missingEnv = requiredEnv.filter((k) => !process.env[k]);
+  if (missingEnv.length > 0) {
+    logger.error(
+      `❌ Missing required env var(s): ${missingEnv.join(', ')}. ` +
+        'Database/auth requests will fail until these are set in the service environment ' +
+        '(DATABASE_URL must be the Postgres connection string, e.g. Render → Internal Database URL).',
+    );
+  }
+
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });

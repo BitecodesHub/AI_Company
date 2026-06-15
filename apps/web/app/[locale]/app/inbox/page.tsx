@@ -30,7 +30,7 @@ export default function InboxPage() {
 
   const { data, isLoading } = useQuery({ queryKey: ['inbox'], queryFn: () => inboxApi.list() });
   const all = (data?.items ?? []) as InboxMessage[];
-  const active = FILTERS.find((f) => f.label === filter) ?? FILTERS[0]!;
+  const active = FILTERS.find((f) => f.label === filter) ?? { label: 'All', match: () => true };
   const messages = all.filter((m) => active.match((m.kind ?? '').toLowerCase()));
 
   const draftAllMut = useMutation({

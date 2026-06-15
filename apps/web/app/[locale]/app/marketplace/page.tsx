@@ -23,7 +23,7 @@ export default function MarketplacePage() {
   const { data, isLoading } = useQuery({ queryKey: ['templates'], queryFn: () => marketplaceApi.list() });
   const templates = (data?.items ?? []) as Template[];
 
-  const activeCat = CATEGORIES.find((c) => c.label === cat) ?? CATEGORIES[0]!;
+  const activeCat = CATEGORIES.find((c) => c.label === cat) ?? { label: 'All', kind: null };
   const visible = templates.filter((t) => {
     const matchesCat = activeCat.kind === null || (t.kind ?? '').toLowerCase().startsWith(activeCat.kind);
     const q = search.trim().toLowerCase();
