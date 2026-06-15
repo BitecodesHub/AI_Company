@@ -336,7 +336,7 @@ export interface MeWorkspace {
 }
 export interface Me {
   user: { id: string; email: string | null; name: string | null } | null;
-  org: { id: string; name: string; slug: string | null } | null;
+  org: { id: string; name: string; slug: string | null; branding?: { brandName?: string; logo?: string } | null } | null;
   workspace: { id: string; name: string; slug: string } | null;
   role: Role | null;
   workspaces: MeWorkspace[];

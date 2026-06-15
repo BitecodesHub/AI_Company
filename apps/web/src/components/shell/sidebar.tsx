@@ -9,7 +9,6 @@ import {
   LogOut, Moon, Sun, ShieldCheck, BadgeCheck, MessagesSquare,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { Logo } from '@bitecodes/ui';
 import { signOut } from '../../lib/auth-client';
 import { roleAtLeast, type Role } from '../../lib/rbac';
 import { useMe } from '../../hooks/use-me';
@@ -72,6 +71,13 @@ export function Sidebar({ locale }: SidebarProps) {
   };
   const isAdmin = roleAtLeast(me.role, 'admin');
 
+  // White-label brand: per-org name + logo (emoji, initials, or image URL),
+  // falling back to the env brand then "Bitecodes". Set in Settings → Branding.
+  const branding = (data?.org?.branding ?? {}) as { brandName?: string; logo?: string };
+  const brandName = branding.brandName?.trim() || BRAND_NAME;
+  const brandLogo = branding.logo?.trim() ?? '';
+  const brandLogoIsImage = /^(https?:|data:)/i.test(brandLogo);
+
   const visibleMore = MORE_NAV.filter((item) => roleAtLeast(me.role, item.minRole));
 
   async function handleSignOut() {
@@ -103,8 +109,17 @@ export function Sidebar({ locale }: SidebarProps) {
     <aside className="w-64 flex flex-col h-screen sticky top-0 border-r border-border bg-sidebar">
       {/* Header */}
       <div className="px-4 pt-5 pb-4">
-        <Link href={`/${locale}`} className="flex items-center group">
-          <Logo name={BRAND_NAME} size={32} className="transition-transform group-hover:scale-[1.03]" />
+        <Link href={`/${locale}`} className="flex items-center gap-2.5 group" aria-label={brandName}>
+          {brandLogo ? (
+            brandLogoIsImage ? (
+              <span className="w-8 h-8 rounded-xl bg-cover bg-center shadow-sm shadow-primary/20 transition-transform group-hover:scale-[1.03]" style={{ backgroundImage: `url(${brandLogo})` }} />
+            ) : (
+              <span className="flex w-8 h-8 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold shadow-sm shadow-primary/25 transition-transform group-hover:scale-[1.03]" style={{ fontSize: brandLogo.length > 2 ? 14 : 16 }}>{brandLogo.slice(0, 2)}</span>
+            )
+          ) : (
+            <span className="flex w-8 h-8 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-sm shadow-primary/25 transition-transform group-hover:scale-[1.03]">{(brandName[0] ?? 'B').toUpperCase()}</span>
+          )}
+          <span className="text-lg font-bold tracking-tight text-foreground truncate">{brandName}</span>
         </Link>
       </div>
 

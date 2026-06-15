@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useId, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Play, Settings, Loader2, Send as SendIcon, Bot, User, Sparkles, Users, CornerDownRight } from 'lucide-react';
+import { ArrowLeft, Play, Settings, Loader2, Send as SendIcon, Bot, User, Sparkles, Users, ChevronDown } from 'lucide-react';
 import {
   agentsApi, runsApi, knowledgeApi, ApiError, type Agent, type AgentRun, type RunWithSteps, type KnowledgeBase,
 } from '../../../../../src/lib/api-client';
@@ -112,6 +112,91 @@ function Markdown({ text }: { text: string }) {
   return <>{blocks}</>;
 }
 
+/** Inter-agent collaboration card: collapsed by default; expands to reveal the
+ *  full conversation between the two employees, with a live "consulting" state. */
+function CollabCard({ data }: { data: CollabData }) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const consulting = data.status === 'consulting';
+  const error = data.status === 'error';
+  const priInitial = data.primaryAvatar || data.primaryName.charAt(0).toUpperCase();
+  const colInitial = data.colleagueAvatar || data.colleagueName.charAt(0).toUpperCase();
+  return (
+    <div className="collab-card flex gap-2.5 justify-start" role="group"
+      aria-label={`Collaboration: ${data.primaryName} consulted ${data.colleagueName}`}>
+      <div className="relative w-9 h-10 shrink-0" aria-hidden="true">
+        <div className="absolute left-0 top-0 w-7 h-7 rounded-lg bg-muted ring-2 ring-background flex items-center justify-center text-[10px] font-semibold text-muted-foreground">{priInitial}</div>
+        <div className="absolute right-0 bottom-0 w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 ring-2 ring-background flex items-center justify-center text-white text-[11px] font-semibold">{colInitial}</div>
+      </div>
+      <div className="max-w-[85%] flex-1 min-w-0">
+        <div className={`rounded-2xl rounded-bl-md border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-violet-500/[0.06] overflow-hidden ${consulting ? 'collab-consulting' : ''}`}>
+          <div className="flex items-start gap-2 px-3.5 py-2 border-b border-primary/10">
+            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+            <span className="text-xs leading-snug min-w-0">
+              <span className="font-medium text-foreground">{data.primaryName}</span>
+              <span className="text-muted-foreground"> consulted </span>
+              <span className="font-medium text-foreground">{data.colleagueName}</span>
+              <span className="text-muted-foreground"> · {data.colleagueRole}</span>
+            </span>
+          </div>
+
+          <div aria-live="polite">
+            {consulting ? (
+              <div className="px-4 py-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{data.colleagueName} is responding</span>
+                <span className="flex gap-1" aria-hidden="true">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+              </div>
+            ) : error ? (
+              <div className="px-4 py-3 text-sm text-destructive whitespace-pre-wrap">{data.answer}</div>
+            ) : (
+              <>
+                {!open && (
+                  <div className="px-4 py-3">
+                    <div className="text-[11px] font-medium text-muted-foreground mb-1">{data.colleagueName} replied</div>
+                    <p className="text-sm text-foreground/80 leading-relaxed">{plainPreview(data.answer)}</p>
+                  </div>
+                )}
+                <div id={panelId} aria-hidden={!open}
+                  className={`grid transition-all duration-300 ease-out ${open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className="overflow-hidden min-h-0">
+                    <div className="px-3.5 py-3 space-y-2.5">
+                      <div className="flex gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-[9px] font-semibold text-muted-foreground shrink-0">{priInitial}</div>
+                        <div className="flex-1 rounded-xl rounded-tl-sm bg-muted/70 px-3 py-2 text-xs leading-relaxed">
+                          <span className="font-semibold">{data.primaryName} → {data.colleagueName}</span>
+                          <p className="mt-0.5 text-foreground/90">{data.question}</p>
+                          <p className="mt-0.5 text-muted-foreground italic">This is your area — can you take it?</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[9px] font-semibold text-white shrink-0">{colInitial}</div>
+                        <div className="flex-1 rounded-xl rounded-tl-sm bg-primary/[0.07] dark:bg-primary/15 border border-primary/10 px-3 py-2 text-xs leading-relaxed">
+                          <span className="font-semibold">{data.colleagueName} → {data.primaryName}</span>
+                          <div className="mt-1 text-foreground/90"><Markdown text={data.answer} /></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls={panelId}
+                  className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors border-t border-primary/10">
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+                  {open ? 'Hide their conversation' : 'See how they collaborated'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="text-[10px] text-muted-foreground/70 mt-1 ml-1">{consulting ? 'Working together…' : 'Handled together · internal collaboration'}</div>
+      </div>
+    </div>
+  );
+}
+
 /** Knowledge tab: attach workspace knowledge bases to this employee. */
 function KnowledgeTab({ agentId }: { agentId: string }) {
   const qc = useQueryClient();
@@ -169,31 +254,98 @@ function KnowledgeTab({ agentId }: { agentId: string }) {
 
 const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-type ChatMsg = { role: 'user' | 'agent' | 'error' | 'handoff'; text: string; at: string; from?: { name: string; avatar?: string | null } };
+type CollabData = {
+  primaryName: string;
+  primaryAvatar?: string | null;
+  colleagueName: string;
+  colleagueRole: string;
+  colleagueAvatar?: string | null;
+  question: string;
+  answer: string;
+  status: 'consulting' | 'done' | 'error';
+};
+type ChatMsg = { role: 'user' | 'agent' | 'error' | 'collab'; text: string; at: string; id?: string; from?: { name: string; avatar?: string | null }; collab?: CollabData };
 type Tab = 'Playground' | 'Configuration' | 'Run history' | 'Knowledge';
 
 // Map an employee's domain to the everyday words a user might use when a question
 // really belongs to that domain — powers the "bring in a colleague" suggestion.
-const ROLE_HINTS: Record<string, string[]> = {
-  finance: ['finance', 'budget', 'invoice', 'expense', 'cost', 'revenue', 'payment', 'accounting', 'tax', 'payroll', 'pricing'],
-  hr: ['hr', 'hire', 'hiring', 'recruit', 'employee', 'leave', 'onboarding', 'people', 'culture'],
-  marketing: ['marketing', 'campaign', 'content', 'social', 'brand', 'audience'],
-  sales: ['sales', 'lead', 'deal', 'pipeline', 'prospect', 'quota', 'crm'],
-  support: ['support', 'ticket', 'issue', 'complaint', 'help'],
-  legal: ['legal', 'contract', 'compliance', 'policy', 'terms', 'gdpr', 'privacy'],
-  product: ['product', 'feature', 'roadmap', 'design', 'spec'],
-  engineering: ['engineering', 'code', 'deploy', 'bug', 'infra', 'technical'],
-  operations: ['operations', 'process', 'logistics', 'vendor', 'procurement'],
+// Domain knowledge for routing a question to the right teammate. `role` terms
+// identify which domain a colleague OWNS (matched against their role + goal);
+// `q` terms are the everyday words a user uses when a question is in that domain
+// (matched as WHOLE words against the question — never substrings; plurals listed
+// explicitly so "leaves" matches but "leadership" never matches "lead").
+const DOMAINS: Record<string, { role: string[]; q: string[] }> = {
+  finance:     { role: ['finance', 'financial', 'account', 'bookkeep', 'controller', 'treasur'], q: ['finance', 'financial', 'budget', 'budgets', 'invoice', 'invoices', 'expense', 'expenses', 'revenue', 'payment', 'payments', 'payroll', 'tax', 'taxes', 'refund', 'refunds', 'pricing', 'accounting', 'reimbursement'] },
+  hr:          { role: ['hr', 'human resource', 'people', 'talent', 'recruit'], q: ['hr', 'hire', 'hiring', 'recruit', 'recruiting', 'leave', 'leaves', 'pto', 'vacation', 'holiday', 'holidays', 'onboarding', 'payroll', 'benefits', 'headcount', 'employee', 'employees', 'attendance'] },
+  marketing:   { role: ['marketing', 'content', 'brand', 'growth', 'seo', 'social'], q: ['marketing', 'campaign', 'campaigns', 'content', 'social', 'brand', 'branding', 'seo', 'audience', 'newsletter', 'copywriting'] },
+  sales:       { role: ['sales', 'account executive', 'business development'], q: ['sales', 'lead', 'leads', 'deal', 'deals', 'pipeline', 'prospect', 'prospects', 'quota', 'crm', 'quote', 'upsell'] },
+  support:     { role: ['support', 'customer success', 'customer service', 'help desk', 'helpdesk', 'success'], q: ['support', 'ticket', 'tickets', 'complaint', 'complaints', 'refund', 'refunds', 'escalation', 'escalate', 'customer', 'customers', 'cancel', 'cancellation', 'return', 'returns'] },
+  legal:       { role: ['legal', 'counsel', 'compliance', 'privacy'], q: ['legal', 'contract', 'contracts', 'compliance', 'policy', 'policies', 'terms', 'gdpr', 'privacy', 'liability', 'nda'] },
+  product:     { role: ['product', 'design', 'ux'], q: ['product', 'feature', 'features', 'roadmap', 'design', 'spec', 'specs', 'backlog', 'prototype'] },
+  engineering: { role: ['engineer', 'engineering', 'developer', 'devops', 'technical', 'infra'], q: ['engineering', 'deploy', 'deployment', 'bug', 'bugs', 'api', 'infra', 'infrastructure', 'database', 'latency'] },
+  operations:  { role: ['operations', 'ops', 'logistics', 'procurement', 'supply'], q: ['operations', 'process', 'processes', 'logistics', 'vendor', 'vendors', 'procurement', 'supply', 'inventory', 'shipping'] },
 };
-function scoreColleague(question: string, a: { name: string; role: string }): number {
-  const q = question.toLowerCase();
+
+function tokenize(s: string): Set<string> {
+  return new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+}
+
+/** Score how well a question fits a colleague's domain — whole-word matching only. */
+function scoreColleague(question: string, a: { role: string; goal?: string | null }): number {
+  const tokens = tokenize(question);
+  const roleText = `${a.role} ${a.goal ?? ''}`.toLowerCase();
   let score = 0;
-  const words = `${a.role} ${a.name}`.toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4);
-  for (const w of words) if (q.includes(w)) score += 2;
-  for (const [key, syns] of Object.entries(ROLE_HINTS)) {
-    if (a.role.toLowerCase().includes(key) && syns.some((s) => q.includes(s))) { score += 1; break; }
+  for (const d of Object.values(DOMAINS)) {
+    if (!d.role.some((t) => roleText.includes(t))) continue; // colleague does not own this domain
+    for (const term of d.q) if (tokens.has(term)) score += 1;
   }
   return score;
+}
+
+/** Pick a colleague to AUTO-consult: a confident, unambiguous, clearly better fit. */
+function pickColleague(
+  question: string,
+  current: { role: string; goal?: string | null } | undefined,
+  others: Agent[],
+): Agent | null {
+  if (!question || others.length === 0) return null;
+  const ranked = others
+    .map((a) => ({ a, score: scoreColleague(question, a) }))
+    .filter((r) => r.score > 0)
+    .sort((x, y) => y.score - x.score);
+  if (ranked.length === 0) return null;
+  const best = ranked[0]!;
+  const second = ranked[1];
+  // Unknown current employee → never auto-route (decide only with full information).
+  const currentScore = current ? scoreColleague(question, current) : Infinity;
+  if (best.score < 2) return null;                                               // need a clear domain signal
+  if (best.score < currentScore + 2) return null;                               // current employee is a comparable fit
+  if (second && second.score >= 2 && best.score - second.score < 2) return null; // ambiguous across domains
+  return best.a;
+}
+
+/** Pick the best SUGGESTED colleague for the manual chip (looser than auto). */
+function suggestColleague(question: string, others: Agent[]): Agent | null {
+  if (!question) return null;
+  let best: { a: Agent; score: number } | null = null;
+  for (const a of others) {
+    const sc = scoreColleague(question, a);
+    if (sc > 0 && (!best || sc > best.score)) best = { a, score: sc };
+  }
+  return best?.a ?? null;
+}
+
+/** Strip markdown to a short plain-text preview (keeps list boundaries as bullets). */
+function plainPreview(text: string, n = 200): string {
+  const s = text
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^\s*(?:[-*]|\d+\.)\s+/gm, ' • ')
+    .replace(/[#*`>_~]/g, '')
+    .replace(/\s*\n\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return s.length > n ? `${s.slice(0, n).trimEnd()}…` : s;
 }
 
 const SUGGESTIONS = [
@@ -211,6 +363,9 @@ export default function AgentDetailPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const aliveRef = useRef(true);
+  const msgSeq = useRef(0);
+  const autoCount = useRef(0);
+  const lastAutoId = useRef<string | null>(null);
   useEffect(() => () => { aliveRef.current = false; }, []);
   // Scroll the messages CONTAINER (not the page) so sending never jumps the page.
   useEffect(() => { const c = containerRef.current; if (c) c.scrollTop = c.scrollHeight; }, [messages, running]);
@@ -231,15 +386,11 @@ export default function AgentDetailPage() {
   const others = ((rosterQ.data?.items ?? []) as Agent[]).filter((a) => a.id !== id);
   const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.text ?? '';
   const lastIsAnswer = messages.length > 0 && messages[messages.length - 1]?.role === 'agent';
-  const suggested = (() => {
-    if (!lastIsAnswer || !lastUserMsg || others.length === 0) return null;
-    let best: { a: Agent; score: number } | null = null;
-    for (const a of others) {
-      const sc = scoreColleague(lastUserMsg, a);
-      if (sc > 0 && (!best || sc > best.score)) best = { a, score: sc };
-    }
-    return best?.a ?? null;
-  })();
+  const suggested = lastIsAnswer && lastUserMsg && others.length > 0
+    ? suggestColleague(lastUserMsg, others)
+    : null;
+  const lastM = messages[messages.length - 1];
+  const collabBusy = lastM?.role === 'collab' && lastM.collab?.status === 'consulting';
 
   /** Run an employee with `text`, poll to completion, and return its answer. */
   async function dispatchTo(agentId: string, text: string): Promise<{ ok: boolean; text: string }> {
@@ -272,38 +423,67 @@ export default function AgentDetailPage() {
     const text = (textArg ?? input).trim();
     if (!text || running) return;
     setInput('');
-    setMessages((m) => [...m, { role: 'user', text, at: now() }]);
+    setMessages((m) => [...m, { role: 'user', text, at: now(), id: `m-${(msgSeq.current += 1)}` }]);
     setRunning(true);
     try {
       const r = await dispatchTo(id, text);
       if (!aliveRef.current) return;
-      setMessages((m) => [...m, r.ok ? { role: 'agent', text: r.text, at: now() } : { role: 'error', text: r.text, at: now() }]);
+      setMessages((m) => [...m, { role: r.ok ? 'agent' : 'error', text: r.text, at: now(), id: `m-${(msgSeq.current += 1)}` }]);
+      // Auto inter-agent collaboration: when the question clearly belongs to a
+      // colleague's domain, bring them in automatically — no clicking needed.
+      // Guarded: only when the current employee is known, never the same colleague
+      // twice in a row, and capped per conversation to avoid runaway runs.
+      if (r.ok && agent) {
+        const colleague = pickColleague(text, { role: agent.role, goal: agent.goal ?? null }, others);
+        if (colleague && aliveRef.current && colleague.id !== lastAutoId.current && autoCount.current < 6) {
+          lastAutoId.current = colleague.id;
+          autoCount.current += 1;
+          await doCollab(colleague, text);
+        }
+      }
     } catch (e) {
       if (!aliveRef.current) return;
-      setMessages((m) => [...m, { role: 'error', text: e instanceof ApiError ? e.message : 'Could not reach the agent. Please try again.', at: now() }]);
+      setMessages((m) => [...m, { role: 'error', text: e instanceof ApiError ? e.message : 'Could not reach the agent. Please try again.', at: now(), id: `m-${(msgSeq.current += 1)}` }]);
     } finally {
       if (aliveRef.current) setRunning(false);
     }
   }
 
-  /** Bring a colleague into the SAME chat to answer a question outside this employee's lane. */
-  async function consult(colleague: Agent, question: string) {
-    if (running || !question) return;
-    setMessages((m) => [...m, { role: 'handoff', text: `${agent?.name ?? 'This employee'} brought in ${colleague.name} — ${colleague.role}`, at: now() }]);
-    setRunning(true);
+  /** Append a collaboration card, run the colleague, then fill in their reply. */
+  async function doCollab(colleague: Agent, question: string) {
+    const cid = `m-${(msgSeq.current += 1)}`;
+    setMessages((m) => [...m, {
+      role: 'collab', id: cid, text: '', at: now(),
+      collab: {
+        primaryName: agent?.name ?? 'This employee',
+        primaryAvatar: agent?.avatar ?? null,
+        colleagueName: colleague.name,
+        colleagueRole: colleague.role,
+        colleagueAvatar: colleague.avatar ?? null,
+        question,
+        answer: '',
+        status: 'consulting',
+      },
+    }]);
+    const finish = (answer: string, status: 'done' | 'error') =>
+      setMessages((m) => m.map((msg) => (msg.id === cid && msg.collab ? { ...msg, collab: { ...msg.collab, answer, status } } : msg)));
     try {
       const prompt = `${question}\n\n(Context: ${agent?.name ?? 'A colleague'}${agent?.role ? ` (${agent.role})` : ''} referred this to you because it is in your area. Answer the user directly and concisely.)`;
       const r = await dispatchTo(colleague.id, prompt);
       if (!aliveRef.current) return;
-      setMessages((m) => [...m, r.ok
-        ? { role: 'agent', from: { name: colleague.name, avatar: colleague.avatar ?? null }, text: r.text, at: now() }
-        : { role: 'error', text: `${colleague.name}: ${r.text}`, at: now() }]);
+      finish(r.text, r.ok ? 'done' : 'error');
     } catch (e) {
       if (!aliveRef.current) return;
-      setMessages((m) => [...m, { role: 'error', text: e instanceof ApiError ? e.message : `Could not reach ${colleague.name}.`, at: now() }]);
-    } finally {
-      if (aliveRef.current) setRunning(false);
+      finish(e instanceof ApiError ? e.message : `Could not reach ${colleague.name}.`, 'error');
     }
+  }
+
+  /** Manually bring a colleague into the SAME chat (same UI as the automatic hand-off). */
+  async function consult(colleague: Agent, question: string) {
+    if (running || !question) return;
+    setRunning(true);
+    try { await doCollab(colleague, question); }
+    finally { if (aliveRef.current) setRunning(false); }
   }
 
   return (
@@ -379,20 +559,12 @@ export default function AgentDetailPage() {
             ) : (
               <>
                 {messages.map((m, i) => {
-                  if (m.role === 'handoff') {
-                    return (
-                      <div key={i} className="flex items-center gap-2 justify-center py-1">
-                        <span className="h-px flex-1 bg-border/70" />
-                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 border border-border rounded-full px-3 py-1 shrink-0">
-                          <CornerDownRight className="w-3.5 h-3.5 text-primary" /> {m.text}
-                        </span>
-                        <span className="h-px flex-1 bg-border/70" />
-                      </div>
-                    );
+                  if (m.role === 'collab' && m.collab) {
+                    return <CollabCard key={m.id ?? i} data={m.collab} />;
                   }
                   const avatarText = m.role === 'error' ? '!' : (m.from?.avatar || m.from?.name?.charAt(0) || agent?.avatar || initial);
                   return (
-                    <div key={i} className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={m.id ?? i} className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       {m.role !== 'user' && (
                         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 text-white text-xs font-semibold">
                           {avatarText}
@@ -417,7 +589,7 @@ export default function AgentDetailPage() {
                     </div>
                   );
                 })}
-                {running && (
+                {running && !collabBusy && (
                   <div className="flex gap-2.5 justify-start">
                     <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 text-white text-xs font-semibold">
                       {agent?.avatar || initial}
@@ -435,7 +607,7 @@ export default function AgentDetailPage() {
 
           {others.length > 0 && messages.length > 0 && (
             <div className="border-t border-border px-3 py-2 flex items-center gap-2 overflow-x-auto">
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Users className="w-3.5 h-3.5" /> Bring in a teammate:</span>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Users className="w-3.5 h-3.5" /> Ask another teammate:</span>
               {suggested && (
                 <button onClick={() => consult(suggested, lastUserMsg)} disabled={running || !lastUserMsg}
                   className="shrink-0 text-xs font-medium rounded-full px-3 py-1.5 bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors disabled:opacity-50">

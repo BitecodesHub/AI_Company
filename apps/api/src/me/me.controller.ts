@@ -36,6 +36,7 @@ export class MeController {
         organizationId: memberships.organizationId,
         orgName: organizations.name,
         orgSlug: organizations.slug,
+        orgBranding: organizations.branding,
         workspaceName: workspaces.name,
         workspaceSlug: workspaces.slug,
       })
@@ -62,7 +63,12 @@ export class MeController {
     return {
       user: { id: user.id, email: user.email ?? null, name: user.name ?? null },
       org: active
-        ? { id: active.organizationId, name: active.organizationName, slug: rows.find((r) => r.organizationId === active.organizationId)?.orgSlug ?? null }
+        ? {
+            id: active.organizationId,
+            name: active.organizationName,
+            slug: rows.find((r) => r.organizationId === active.organizationId)?.orgSlug ?? null,
+            branding: rows.find((r) => r.organizationId === active.organizationId)?.orgBranding ?? null,
+          }
         : null,
       workspace: active ? { id: active.id, name: active.name, slug: active.slug } : null,
       role: tc?.role ?? active?.role ?? null,

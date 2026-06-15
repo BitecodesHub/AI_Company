@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Building, Users, Mail, Plug, SlidersHorizontal, Activity } from 'lucide-react';
+import { BrandingCard } from '../../../../src/components/settings/branding-card';
 
 export const metadata: Metadata = { title: 'Settings' };
 
@@ -21,6 +22,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground mt-1">Manage your workspace and account preferences.</p>
       </div>
+      <BrandingCard />
       <div className="space-y-2">
         {sections.map((s) => (
           <Link key={s.label} href={s.href}
