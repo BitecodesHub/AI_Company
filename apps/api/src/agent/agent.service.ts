@@ -335,4 +335,46 @@ export class AgentService {
       return { knowledgeBaseIds };
     });
   }
+
+  /** Read the connectors (tools) attached to an agent's active version. */
+  async getConnectors(agentId: string, ctx: { organizationId: string; workspaceId: string }): Promise<string[]> {
+    return this.drizzle.withTenant(ctx.organizationId, ctx.workspaceId, async (tx) => {
+      const [agent] = await (tx as any)
+        .select({ activeVersionId: agents.activeVersionId })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), isNull(agents.deletedAt)))
+        .limit(1);
+      if (!agent?.activeVersionId) return [];
+      const [version] = await (tx as any)
+        .select({ config: agentVersions.config })
+        .from(agentVersions)
+        .where(eq(agentVersions.id, agent.activeVersionId))
+        .limit(1);
+      const cfg = (version?.config ?? {}) as { connectorIds?: string[] };
+      return Array.isArray(cfg.connectorIds) ? cfg.connectorIds : [];
+    });
+  }
+
+  /** Attach a set of connectors to the agent's active version (merged into config). */
+  async setConnectors(agentId: string, connectorIds: string[], ctx: { organizationId: string; workspaceId: string }) {
+    return this.drizzle.withTenant(ctx.organizationId, ctx.workspaceId, async (tx) => {
+      const [agent] = await (tx as any)
+        .select({ activeVersionId: agents.activeVersionId })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), isNull(agents.deletedAt)))
+        .limit(1);
+      if (!agent?.activeVersionId) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Agent has no active version.' });
+      const [version] = await (tx as any)
+        .select({ config: agentVersions.config })
+        .from(agentVersions)
+        .where(eq(agentVersions.id, agent.activeVersionId))
+        .limit(1);
+      const cfg = { ...((version?.config ?? {}) as Record<string, unknown>), connectorIds };
+      await (tx as any)
+        .update(agentVersions)
+        .set({ config: cfg })
+        .where(eq(agentVersions.id, agent.activeVersionId));
+      return { connectorIds };
+    });
+  }
 }

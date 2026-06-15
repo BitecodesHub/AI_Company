@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useId, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Play, Settings, Loader2, Send as SendIcon, Bot, User, Sparkles, Users, ChevronDown } from 'lucide-react';
 import {
-  agentsApi, runsApi, knowledgeApi, ApiError, type Agent, type AgentRun, type RunWithSteps, type KnowledgeBase,
+  agentsApi, runsApi, knowledgeApi, connectorsApi, ApiError, type Agent, type AgentRun, type RunWithSteps, type KnowledgeBase, type Connector, type AgentTrigger,
 } from '../../../../../src/lib/api-client';
 import { ControlPanel } from '../../../../../src/components/employee/control-panel';
 import { OrgGraph } from '../../../../../src/components/employee/org-graph';
@@ -119,79 +119,69 @@ function CollabCard({ data }: { data: CollabData }) {
   const panelId = useId();
   const consulting = data.status === 'consulting';
   const error = data.status === 'error';
-  const priInitial = data.primaryAvatar || data.primaryName.charAt(0).toUpperCase();
   const colInitial = data.colleagueAvatar || data.colleagueName.charAt(0).toUpperCase();
   return (
     <div className="collab-card flex gap-2.5 justify-start" role="group"
-      aria-label={`Collaboration: ${data.primaryName} consulted ${data.colleagueName}`}>
-      <div className="relative w-9 h-10 shrink-0" aria-hidden="true">
-        <div className="absolute left-0 top-0 w-7 h-7 rounded-lg bg-muted ring-2 ring-background flex items-center justify-center text-[10px] font-semibold text-muted-foreground">{priInitial}</div>
-        <div className="absolute right-0 bottom-0 w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 ring-2 ring-background flex items-center justify-center text-white text-[11px] font-semibold">{colInitial}</div>
+      aria-label={`${data.colleagueName} replied, brought in by ${data.primaryName}`}>
+      {/* Colleague avatar — rendered like any normal agent reply. */}
+      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 text-white text-xs font-semibold">
+        {colInitial}
       </div>
-      <div className="max-w-[85%] flex-1 min-w-0">
-        <div className={`rounded-2xl rounded-bl-md border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-violet-500/[0.06] overflow-hidden ${consulting ? 'collab-consulting' : ''}`}>
-          <div className="flex items-start gap-2 px-3.5 py-2 border-b border-primary/10">
-            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-            <span className="text-xs leading-snug min-w-0">
-              <span className="font-medium text-foreground">{data.primaryName}</span>
-              <span className="text-muted-foreground"> consulted </span>
-              <span className="font-medium text-foreground">{data.colleagueName}</span>
-              <span className="text-muted-foreground"> · {data.colleagueRole}</span>
-            </span>
-          </div>
-
-          <div aria-live="polite">
-            {consulting ? (
-              <div className="px-4 py-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{data.colleagueName} is responding</span>
-                <span className="flex gap-1" aria-hidden="true">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </span>
-              </div>
-            ) : error ? (
-              <div className="px-4 py-3 text-sm text-destructive whitespace-pre-wrap">{data.answer}</div>
-            ) : (
-              <>
-                {!open && (
-                  <div className="px-4 py-3">
-                    <div className="text-[11px] font-medium text-muted-foreground mb-1">{data.colleagueName} replied</div>
-                    <p className="text-sm text-foreground/80 leading-relaxed">{plainPreview(data.answer)}</p>
-                  </div>
-                )}
-                <div id={panelId} aria-hidden={!open}
-                  className={`grid transition-all duration-300 ease-out ${open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                  <div className="overflow-hidden min-h-0">
-                    <div className="px-3.5 py-3 space-y-2.5">
-                      <div className="flex gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-[9px] font-semibold text-muted-foreground shrink-0">{priInitial}</div>
-                        <div className="flex-1 rounded-xl rounded-tl-sm bg-muted/70 px-3 py-2 text-xs leading-relaxed">
-                          <span className="font-semibold">{data.primaryName} → {data.colleagueName}</span>
-                          <p className="mt-0.5 text-foreground/90">{data.question}</p>
-                          <p className="mt-0.5 text-muted-foreground italic">This is your area — can you take it?</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[9px] font-semibold text-white shrink-0">{colInitial}</div>
-                        <div className="flex-1 rounded-xl rounded-tl-sm bg-primary/[0.07] dark:bg-primary/15 border border-primary/10 px-3 py-2 text-xs leading-relaxed">
-                          <span className="font-semibold">{data.colleagueName} → {data.primaryName}</span>
-                          <div className="mt-1 text-foreground/90"><Markdown text={data.answer} /></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls={panelId}
-                  className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors border-t border-primary/10">
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
-                  {open ? 'Hide their conversation' : 'See how they collaborated'}
-                </button>
-              </>
-            )}
-          </div>
+      <div className="max-w-[80%] flex-1 min-w-0">
+        {/* Collaboration line on top + a dropdown that reveals the internal conversation. */}
+        <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mb-1 ml-1">
+          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground min-w-0">
+            <Sparkles className="w-3 h-3 text-primary shrink-0" />
+            <span className="font-medium text-foreground">{data.colleagueName}</span>
+            <span className="truncate">· {data.colleagueRole}</span>
+            <span className="text-muted-foreground/80">· brought in by {data.primaryName}</span>
+          </span>
+          {!consulting && !error && (
+            <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls={panelId}
+              className="inline-flex items-center gap-0.5 text-[11px] font-medium text-primary hover:underline shrink-0">
+              <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+              {open ? 'Hide conversation' : 'View conversation'}
+            </button>
+          )}
         </div>
-        <div className="text-[10px] text-muted-foreground/70 mt-1 ml-1">{consulting ? 'Working together…' : 'Handled together · internal collaboration'}</div>
+
+        {/* Dropdown: how the two employees talked to each other. */}
+        {!consulting && !error && (
+          <div id={panelId} aria-hidden={!open}
+            className={`grid transition-all duration-300 ease-out ${open ? 'grid-rows-[1fr] opacity-100 mb-2' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className="overflow-hidden min-h-0">
+              <div className="rounded-xl border border-primary/15 bg-primary/[0.04] p-2.5 space-y-1.5 text-xs">
+                <div className="text-foreground/90">
+                  <span className="font-semibold">{data.primaryName} → {data.colleagueName}:</span> {data.question}
+                  <span className="text-muted-foreground italic"> — this is your area, can you take it?</span>
+                </div>
+                <div className="text-muted-foreground">
+                  <span className="font-semibold text-foreground/80">{data.colleagueName}</span> replied with the answer below.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* The colleague's reply — a normal chat bubble. */}
+        <div aria-live="polite" className={`rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed ${
+          error ? 'bg-destructive/10 text-destructive border border-destructive/20 whitespace-pre-wrap' : 'bg-muted'
+        } ${consulting ? 'collab-consulting' : ''}`}>
+          {consulting ? (
+            <span className="flex items-center gap-2 text-muted-foreground">
+              {data.colleagueName} is responding
+              <span className="flex gap-1" aria-hidden="true">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            </span>
+          ) : error ? (
+            data.answer
+          ) : (
+            <Markdown text={data.answer} />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -252,6 +242,128 @@ function KnowledgeTab({ agentId }: { agentId: string }) {
   );
 }
 
+/** Connectors tab: choose which connected tools this employee may use. */
+function ConnectorsTab({ agentId }: { agentId: string }) {
+  const qc = useQueryClient();
+  const connsQ = useQuery({ queryKey: ['connectors'], queryFn: () => connectorsApi.list() });
+  const attachedQ = useQuery({ queryKey: ['agent-connectors', agentId], queryFn: () => agentsApi.getConnectors(agentId) });
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (attachedQ.data && !dirty) setSel(new Set(attachedQ.data.connectorIds));
+  }, [attachedQ.data, dirty]);
+  const saveMut = useMutation({
+    mutationFn: () => agentsApi.setConnectors(agentId, [...sel]),
+    onSuccess: () => { toast.success('Connectors updated'); setDirty(false); qc.invalidateQueries({ queryKey: ['agent-connectors', agentId] }); },
+    onError: () => toast.error('Could not update connectors'),
+  });
+  const conns = (connsQ.data?.items ?? []) as Connector[];
+  function toggle(connId: string) {
+    setDirty(true);
+    setSel((s) => { const n = new Set(s); if (n.has(connId)) n.delete(connId); else n.add(connId); return n; });
+  }
+
+  if (connsQ.isLoading) {
+    return <div className="border border-border rounded-xl p-8"><div className="h-24 bg-muted rounded-lg animate-pulse" /></div>;
+  }
+  if (conns.length === 0) {
+    return (
+      <div className="border border-border rounded-xl p-8 text-center text-sm text-muted-foreground">
+        No connected tools yet. <Link href="/app/connectors" className="text-primary hover:underline">Connect a tool →</Link> (built-in ones need no setup), then assign it here so this employee can use it.
+      </div>
+    );
+  }
+  return (
+    <div className="border border-border rounded-xl p-5 space-y-3">
+      <p className="text-sm text-muted-foreground">Choose which connected tools this employee may use.</p>
+      <div className="space-y-2">
+        {conns.map((c) => (
+          <label key={c.id} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer">
+            <input type="checkbox" checked={sel.has(c.id)} onChange={() => toggle(c.id)} className="w-4 h-4" />
+            <span className="flex-1">
+              <span className="text-sm font-medium">{c.name}</span>
+              <span className="block text-xs text-muted-foreground capitalize">{c.type} · {c.status}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <div className="flex justify-end">
+        <button onClick={() => saveMut.mutate()} disabled={!dirty || saveMut.isPending}
+          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2">
+          {saveMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Teams tab: assign this employee a Microsoft Teams email so people can talk to
+ *  it through Teams. Stored as a `webhook` trigger with config {channel:'teams'}. */
+function TeamsAssignment({ agentId }: { agentId: string }) {
+  const qc = useQueryClient();
+  const triggersQ = useQuery({ queryKey: ['agent-triggers', agentId], queryFn: () => agentsApi.listTriggers(agentId) });
+  const existing = ((triggersQ.data?.items ?? []) as AgentTrigger[]).find(
+    (t) => t.type === 'webhook' && (t.config as Record<string, unknown> | null)?.['channel'] === 'teams',
+  );
+  const [email, setEmail] = useState('');
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (!dirty) setEmail(((existing?.config as Record<string, unknown> | null)?.['teamsEmail'] as string) ?? '');
+  }, [existing, dirty]);
+
+  const save = useMutation({
+    mutationFn: () => {
+      const config = { channel: 'teams', teamsEmail: email.trim() };
+      return existing
+        ? agentsApi.updateTrigger(agentId, existing.id, { config })
+        : agentsApi.createTrigger(agentId, { type: 'webhook', config });
+    },
+    onSuccess: () => { toast.success('Microsoft Teams identity saved'); setDirty(false); qc.invalidateQueries({ queryKey: ['agent-triggers', agentId] }); },
+    onError: (e: Error) => toast.error(e.message || 'Could not save Teams identity'),
+  });
+  const remove = useMutation({
+    mutationFn: () => (existing ? agentsApi.deleteTrigger(agentId, existing.id) : Promise.resolve()),
+    onSuccess: () => { toast.success('Disconnected from Teams'); setEmail(''); setDirty(false); qc.invalidateQueries({ queryKey: ['agent-triggers', agentId] }); },
+    onError: (e: Error) => toast.error(e.message || 'Could not remove'),
+  });
+
+  return (
+    <div className="border border-border rounded-xl p-5 space-y-3">
+      <div className="flex items-center gap-2">
+        <Users className="w-4 h-4 text-primary" />
+        <h3 className="text-sm font-semibold">Microsoft Teams</h3>
+        {existing && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Assigned</span>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Assign this employee a Microsoft Teams email so your team can message it directly in Teams. Replies are sent back through Teams — and held for your approval first, unless this employee’s approval mode is set to “never”.
+      </p>
+      <div className="flex gap-2">
+        <input
+          value={email}
+          onChange={(e) => { setDirty(true); setEmail(e.target.value); }}
+          placeholder="employee@yourcompany.onmicrosoft.com"
+          className="flex-1 text-sm bg-background border border-border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors placeholder:text-muted-foreground"
+        />
+        <button onClick={() => save.mutate()} disabled={!email.trim() || save.isPending}
+          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2 shrink-0">
+          {save.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save
+        </button>
+        {existing && (
+          <button onClick={() => remove.mutate()} disabled={remove.isPending}
+            className="border border-border px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors shrink-0">
+            Remove
+          </button>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Inbound Teams messages reach this employee via <code className="bg-black/10 dark:bg-white/15 rounded px-1 py-0.5">/hooks/teams</code> — point a Microsoft Graph change-notification subscription at that URL. Requires a connected Teams connector.
+      </p>
+    </div>
+  );
+}
+
 const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 type CollabData = {
@@ -265,7 +377,7 @@ type CollabData = {
   status: 'consulting' | 'done' | 'error';
 };
 type ChatMsg = { role: 'user' | 'agent' | 'error' | 'collab'; text: string; at: string; id?: string; from?: { name: string; avatar?: string | null }; collab?: CollabData };
-type Tab = 'Playground' | 'Configuration' | 'Run history' | 'Knowledge';
+type Tab = 'Playground' | 'Configuration' | 'Run history' | 'Knowledge' | 'Connectors';
 
 // Map an employee's domain to the everyday words a user might use when a question
 // really belongs to that domain — powers the "bring in a colleague" suggestion.
@@ -335,18 +447,7 @@ function suggestColleague(question: string, others: Agent[]): Agent | null {
   return best?.a ?? null;
 }
 
-/** Strip markdown to a short plain-text preview (keeps list boundaries as bullets). */
-function plainPreview(text: string, n = 200): string {
-  const s = text
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/^\s*(?:[-*]|\d+\.)\s+/gm, ' • ')
-    .replace(/[#*`>_~]/g, '')
-    .replace(/\s*\n\s*/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return s.length > n ? `${s.slice(0, n).trimEnd()}…` : s;
-}
+// (collapsed-preview helper removed — colleague replies now render in full as a normal bubble)
 
 const SUGGESTIONS = [
   'What can you help me with?',
@@ -520,7 +621,7 @@ export default function AgentDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border mb-6">
-        {(['Playground', 'Configuration', 'Run history', 'Knowledge'] as Tab[]).map((t) => (
+        {(['Playground', 'Configuration', 'Run history', 'Knowledge', 'Connectors'] as Tab[]).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${t === tab ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t}
@@ -653,6 +754,12 @@ export default function AgentDetailPage() {
         </div>
       )}
 
+      {tab === 'Configuration' && (
+        <div className="mt-4">
+          <TeamsAssignment agentId={id} />
+        </div>
+      )}
+
       {tab === 'Run history' && (
         <div className="border border-border rounded-xl overflow-hidden">
           {runsQ.isLoading ? (
@@ -675,6 +782,8 @@ export default function AgentDetailPage() {
       )}
 
       {tab === 'Knowledge' && <KnowledgeTab agentId={id} />}
+
+      {tab === 'Connectors' && <ConnectorsTab agentId={id} />}
 
       <div className="mt-6">
         <ControlPanel agentId={id} />

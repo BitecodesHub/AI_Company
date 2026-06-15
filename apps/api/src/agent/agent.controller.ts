@@ -22,6 +22,7 @@ const HireSchema = z.object({
 });
 
 const SetKnowledgeSchema = z.object({ knowledgeBaseIds: z.array(z.string().uuid()).max(20) });
+const SetConnectorsSchema = z.object({ connectorIds: z.array(z.string().uuid()).max(50) });
 
 @ApiTags('agents')
 @ApiBearerAuth()
@@ -147,6 +148,26 @@ export class AgentController {
     const ctx = this.ctx(req);
     if (!ctx.organizationId) return { knowledgeBaseIds: body.knowledgeBaseIds };
     return this.agentService.setKnowledge(id, body.knowledgeBaseIds, ctx);
+  }
+
+  @Get(':id/connectors')
+  @ApiOperation({ summary: 'List connectors attached to an agent' })
+  async getConnectors(@Param('id') id: string, @Req() req: Request) {
+    const ctx = this.ctx(req);
+    if (!ctx.organizationId) return { connectorIds: [] };
+    return { connectorIds: await this.agentService.getConnectors(id, ctx) };
+  }
+
+  @Patch(':id/connectors')
+  @ApiOperation({ summary: 'Attach connectors to an agent' })
+  async setConnectors(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(SetConnectorsSchema)) body: z.infer<typeof SetConnectorsSchema>,
+    @Req() req: Request,
+  ) {
+    const ctx = this.ctx(req);
+    if (!ctx.organizationId) return { connectorIds: body.connectorIds };
+    return this.agentService.setConnectors(id, body.connectorIds, ctx);
   }
 
   @Post(':id/runs')

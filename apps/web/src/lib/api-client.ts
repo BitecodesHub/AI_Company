@@ -108,6 +108,8 @@ export interface Workspace { id: string; organizationId: string; name: string; s
 
 // ── Domain helpers ────────────────────────────────────────────────────────────
 
+export interface AgentTrigger { id: string; type: string; config?: Record<string, unknown> | null; enabled: boolean; }
+
 export const agentsApi = {
   list:           () => api.get<{ items: Agent[]; nextCursor: string | null }>('/v1/agents'),
   get:            (id: string) => api.get<Agent>(`/v1/agents/${id}`),
@@ -127,6 +129,15 @@ export const agentsApi = {
   getKnowledge:   (id: string) => api.get<{ knowledgeBaseIds: string[] }>(`/v1/agents/${id}/knowledge`),
   setKnowledge:   (id: string, knowledgeBaseIds: string[]) =>
                     api.patch<{ knowledgeBaseIds: string[] }>(`/v1/agents/${id}/knowledge`, { knowledgeBaseIds }),
+  getConnectors:  (id: string) => api.get<{ connectorIds: string[] }>(`/v1/agents/${id}/connectors`),
+  setConnectors:  (id: string, connectorIds: string[]) =>
+                    api.patch<{ connectorIds: string[] }>(`/v1/agents/${id}/connectors`, { connectorIds }),
+  listTriggers:   (id: string) => api.get<{ items: AgentTrigger[]; nextCursor: string | null }>(`/v1/agents/${id}/triggers`),
+  createTrigger:  (id: string, input: { type: string; config?: Record<string, unknown>; enabled?: boolean }) =>
+                    api.post<AgentTrigger>(`/v1/agents/${id}/triggers`, input),
+  updateTrigger:  (id: string, triggerId: string, input: { config?: Record<string, unknown>; enabled?: boolean }) =>
+                    api.patch<AgentTrigger>(`/v1/agents/${id}/triggers/${triggerId}`, input),
+  deleteTrigger:  (id: string, triggerId: string) => api.delete<void>(`/v1/agents/${id}/triggers/${triggerId}`),
 };
 
 export interface RunStep {
@@ -298,7 +309,7 @@ export const contentApi = {
 
 export const connectorsApi = {
   list:           () => api.get<{ items: Connector[]; nextCursor: string | null }>('/v1/connectors'),
-  oauthStart:     (type: string) => api.post<{ authUrl: string }>(`/v1/connectors/${type}/oauth/start`),
+  oauthStart:     (type: string) => api.post<{ authUrl?: string; authorizationUrl?: string; connected?: boolean; configured?: boolean; noConfig?: boolean }>(`/v1/connectors/${type}/oauth/start`),
   update:         (id: string, input: unknown) => api.patch<Connector>(`/v1/connectors/${id}`, input),
   remove:         (id: string) => api.delete<void>(`/v1/connectors/${id}`),
 };

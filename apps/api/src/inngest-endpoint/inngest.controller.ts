@@ -9,6 +9,9 @@ import {
   contentGenerateFunction,
   schedulerTickFunction,
   memoryConsolidateFunction,
+  teamsInboundFunction,
+  teamsReplyFunction,
+  teamsApprovedSendFunction,
 } from '../inngest/index.js';
 
 const INNGEST_FUNCTIONS = [
@@ -18,6 +21,9 @@ const INNGEST_FUNCTIONS = [
   contentGenerateFunction,
   schedulerTickFunction,
   memoryConsolidateFunction,
+  teamsInboundFunction,
+  teamsReplyFunction,
+  teamsApprovedSendFunction,
 ];
 
 @Controller('api/inngest')

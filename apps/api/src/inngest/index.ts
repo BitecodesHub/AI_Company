@@ -5,3 +5,4 @@ export { controllerDispatchFunction } from './controller.dispatch.js';
 export { contentGenerateFunction } from './content.generate.js';
 export { schedulerTickFunction, runSchedulerTick } from './scheduler.tick.js';
 export { memoryConsolidateFunction, runMemoryConsolidate } from './memory.consolidate.js';
+export { teamsInboundFunction, teamsReplyFunction, teamsApprovedSendFunction } from './teams-bridge.js';

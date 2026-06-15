@@ -51,6 +51,17 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
 };
 
+/**
+ * No-config connectors — built-in capabilities that connect INSTANTLY with no
+ * OAuth and no credentials, so a fresh workspace has working tools out of the box.
+ */
+const NO_CONFIG: Record<string, { name: string; config?: () => Record<string, unknown> }> = {
+  web:     { name: 'Web Access' },
+  webhook: { name: 'Inbound Webhook', config: () => ({ url: `${process.env['APP_URL'] ?? ''}/v1/webhooks/in/${crypto.randomBytes(8).toString('hex')}`, secret: crypto.randomBytes(16).toString('hex') }) },
+  http:    { name: 'HTTP / REST' },
+  rss:     { name: 'RSS Feeds' },
+};
+
 interface TokenResponse {
   access_token?: string;
   refresh_token?: string;
@@ -115,9 +126,30 @@ export class ConnectorOauthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Start OAuth flow for a connector type' })
   async oauthStart(@Param('type') type: string, @Req() req: Request) {
+    const ctx = this.ctx(req);
+
+    // No-config connectors connect INSTANTLY (no OAuth, no credentials). Idempotent.
+    const builtin = NO_CONFIG[type];
+    if (builtin) {
+      if (!ctx.organizationId) return { connected: false, configured: true, noConfig: true };
+      await this.drizzle.withTenant(ctx.organizationId, ctx.workspaceId || undefined, async (tx) => {
+        const existing = await tx.select({ id: connectors.id }).from(connectors).where(eq(connectors.type, type)).limit(1);
+        if (existing.length === 0) {
+          await tx.insert(connectors).values({
+            organizationId: ctx.organizationId,
+            workspaceId: ctx.workspaceId || null,
+            type,
+            name: builtin.name,
+            status: 'connected',
+            config: builtin.config ? builtin.config() : {},
+          });
+        }
+      });
+      return { connected: true, configured: true, noConfig: true };
+    }
+
     const provider = PROVIDERS[type];
     const clientId = provider ? process.env[provider.clientIdEnv] : undefined;
-    const ctx = this.ctx(req);
 
     // Gate on env + tenant: surface a stub URL the UI maps to "not configured".
     if (!provider || !clientId || !ctx.organizationId) {
