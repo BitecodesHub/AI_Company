@@ -4,7 +4,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { pgTable, text, boolean, timestamp, uuid, pgEnum } from 'drizzle-orm/pg-core';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import { sql } from 'drizzle-orm';
 
 // Minimal inline Drizzle schema matching Better Auth's expected table shapes.
@@ -132,44 +132,54 @@ export class BetterAuthService implements OnModuleInit {
         user: {
           create: {
             after: async (user) => {
-              try {
-                const slug = user.email
-                  .split('@')[0]!
-                  .toLowerCase()
-                  .replace(/[^a-z0-9]/g, '-')
-                  .slice(0, 40);
-                const orgId = crypto.randomUUID();
-                const wsId  = crypto.randomUUID();
-                const memId = crypto.randomUUID();
+              const slug = user.email
+                .split('@')[0]!
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '-')
+                .slice(0, 40);
+              const orgId = crypto.randomUUID();
+              const wsId = crypto.randomUUID();
+              const memId = crypto.randomUUID();
 
-                // Use SUPERUSER URL for this hook so it bypasses RLS
-                const superPool = new Pool({
-                  connectionString:
-                    process.env['DATABASE_SUPERUSER_URL'] ??
-                    process.env['DATABASE_URL'],
-                });
-                try {
-                  await superPool.query(
-                    `INSERT INTO organizations (id, name, slug, plan, created_at, updated_at)
-                     VALUES ($1, $2, $3, 'free', now(), now())`,
-                    [orgId, `${user.name}'s workspace`, slug],
-                  );
-                  await superPool.query(
-                    `INSERT INTO workspaces (id, organization_id, name, slug, created_at, updated_at)
-                     VALUES ($1, $2, 'Default', 'default', now(), now())`,
-                    [wsId, orgId],
-                  );
-                  await superPool.query(
-                    `INSERT INTO memberships (id, user_id, organization_id, workspace_id, role, created_at)
-                     VALUES ($1, $2, $3, $4, 'owner', now())`,
-                    [memId, user.id, orgId, wsId],
-                  );
-                  this.logger.log(`Auto-provisioned org ${orgId} + workspace ${wsId} for user ${user.id}`);
-                } finally {
-                  await superPool.end();
-                }
+              // First-run provisioning. `workspaces` and `memberships` use FORCE
+              // ROW LEVEL SECURITY, so even the owner connection is filtered by the
+              // tenant policies. We therefore open ONE transaction, set the tenant
+              // GUCs (transaction-local), and insert within it — otherwise the
+              // WITH CHECK fails and the new user is left with no workspace.
+              const superPool = new Pool({
+                connectionString:
+                  process.env['DATABASE_SUPERUSER_URL'] ??
+                  process.env['DATABASE_URL'],
+              });
+              let client: PoolClient | undefined;
+              try {
+                client = await superPool.connect();
+                await client.query('BEGIN');
+                await client.query(`SELECT set_config('app.current_org', $1, true)`, [orgId]);
+                await client.query(`SELECT set_config('app.current_workspace', $1, true)`, [wsId]);
+                await client.query(
+                  `INSERT INTO organizations (id, name, slug, plan, created_at, updated_at)
+                   VALUES ($1, $2, $3, 'free', now(), now())`,
+                  [orgId, `${user.name}'s workspace`, slug],
+                );
+                await client.query(
+                  `INSERT INTO workspaces (id, organization_id, name, slug, created_at, updated_at)
+                   VALUES ($1, $2, 'Default', 'default', now(), now())`,
+                  [wsId, orgId],
+                );
+                await client.query(
+                  `INSERT INTO memberships (id, user_id, organization_id, workspace_id, role, created_at)
+                   VALUES ($1, $2, $3, $4, 'owner', now())`,
+                  [memId, user.id, orgId, wsId],
+                );
+                await client.query('COMMIT');
+                this.logger.log(`Auto-provisioned org ${orgId} + workspace ${wsId} for user ${user.id}`);
               } catch (err) {
+                if (client) await client.query('ROLLBACK').catch(() => undefined);
                 this.logger.error('Failed to auto-provision workspace:', err);
+              } finally {
+                client?.release();
+                await superPool.end().catch(() => undefined);
               }
             },
           },

@@ -5,12 +5,29 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ArrowLeft, Bot, Sparkles } from 'lucide-react';
 import { agentsApi, ApiError } from '../../../../../src/lib/api-client';
+import { DisclosureSection } from '../../../../../src/components/ui/disclosure-section';
+
+type CostTier = 'auto' | 'fast' | 'smart';
+type Mode = 'sandbox' | 'production';
+
+const inputCls =
+  'w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary';
 
 export default function NewAgentPage() {
   const router = useRouter();
+  // Essentials
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [goal, setGoal] = useState('');
+  // Advanced (sensible defaults — most users never touch these)
+  const [costTier, setCostTier] = useState<CostTier>('auto');
+  const [mode, setMode] = useState<Mode>('sandbox');
+  const [defaultModel, setDefaultModel] = useState('');
+  // Expert / guardrails
+  const [promptInjectionScan, setPromptInjectionScan] = useState(true);
+  const [piiMask, setPiiMask] = useState(false);
+  const [maxCost, setMaxCost] = useState('0.5');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,7 +37,19 @@ export default function NewAgentPage() {
     setLoading(true);
     setError('');
     try {
-      const agent = await agentsApi.create({ name, role, goal, costTier: 'auto', mode: 'sandbox' });
+      const agent = await agentsApi.create({
+        name,
+        role,
+        goal,
+        costTier,
+        mode,
+        ...(defaultModel.trim() ? { defaultModel: defaultModel.trim() } : {}),
+        guardrails: {
+          promptInjectionScan,
+          piiMask,
+          maxCostUsdPerRun: Number(maxCost) > 0 ? Number(maxCost) : 0.5,
+        },
+      });
       router.push(`/app/agents/${agent.id}`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -41,6 +70,12 @@ export default function NewAgentPage() {
     { icon: '📊', title: 'Analytics Reporter', role: 'Data analyst', goal: 'Analyze content and campaign performance and provide actionable insights weekly' },
   ];
 
+  const costTiers: Array<{ value: CostTier; label: string; hint: string }> = [
+    { value: 'auto', label: 'Auto', hint: 'Pick the best model per task (recommended)' },
+    { value: 'fast', label: 'Fast', hint: 'Cheaper and lower latency' },
+    { value: 'smart', label: 'Smart', hint: 'Highest quality, higher cost' },
+  ];
+
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <div className="flex items-center gap-3 mb-8">
@@ -52,7 +87,7 @@ export default function NewAgentPage() {
       </div>
 
       <h1 className="text-2xl font-bold mb-2">Create an agent</h1>
-      <p className="text-muted-foreground mb-8">Define your agent&apos;s role, goal, and personality. You can refine it later.</p>
+      <p className="text-muted-foreground mb-8">Give it a name and a job. Everything else has smart defaults you can tune later.</p>
 
       {/* Templates */}
       <div className="mb-8">
@@ -86,25 +121,96 @@ export default function NewAgentPage() {
         {error && (
           <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg">{error}</div>
         )}
+
+        {/* ── Essentials ───────────────────────────────────────────── */}
         <div>
           <label className="block text-sm font-medium mb-1.5" htmlFor="name">Agent name <span className="text-destructive">*</span></label>
           <input id="name" value={name} onChange={e => setName(e.target.value)} required
-            placeholder="e.g. Social Media Manager"
-            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" />
+            placeholder="e.g. Social Media Manager" className={inputCls} />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1.5" htmlFor="role">Role <span className="text-destructive">*</span></label>
           <input id="role" value={role} onChange={e => setRole(e.target.value)} required
-            placeholder="e.g. You are an expert social media strategist"
-            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" />
+            placeholder="e.g. You are an expert social media strategist" className={inputCls} />
           <p className="text-xs text-muted-foreground mt-1">Describe what this agent is and what it specialises in.</p>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1.5" htmlFor="goal">Goal</label>
           <textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} rows={3}
             placeholder="e.g. Help the team create and schedule engaging social content that drives engagement"
-            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none" />
+            className={`${inputCls} resize-none`} />
         </div>
+
+        {/* ── Advanced (collapsed) ─────────────────────────────────── */}
+        <DisclosureSection title="Advanced settings" level="advanced">
+          <div>
+            <span className="block text-sm font-medium mb-2">Model intelligence</span>
+            <div className="grid grid-cols-3 gap-2">
+              {costTiers.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setCostTier(t.value)}
+                  className={`text-left rounded-lg border p-3 transition-colors ${
+                    costTier === t.value ? 'border-primary bg-primary/5 ring-1 ring-primary/40' : 'border-border hover:bg-muted'
+                  }`}
+                >
+                  <div className="text-sm font-medium">{t.label}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{t.hint}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <span className="block text-sm font-medium mb-2">Execution mode</span>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setMode('sandbox')}
+                className={`text-left rounded-lg border p-3 transition-colors ${mode === 'sandbox' ? 'border-primary bg-primary/5 ring-1 ring-primary/40' : 'border-border hover:bg-muted'}`}>
+                <div className="text-sm font-medium">Sandbox</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">Test safely — no real actions are taken</div>
+              </button>
+              <button type="button" onClick={() => setMode('production')}
+                className={`text-left rounded-lg border p-3 transition-colors ${mode === 'production' ? 'border-primary bg-primary/5 ring-1 ring-primary/40' : 'border-border hover:bg-muted'}`}>
+                <div className="text-sm font-medium">Production</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">Perform real actions (publish, send, etc.)</div>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5" htmlFor="model">Model override</label>
+            <input id="model" value={defaultModel} onChange={e => setDefaultModel(e.target.value)}
+              placeholder="Leave blank to use the workspace default" className={inputCls} />
+          </div>
+        </DisclosureSection>
+
+        {/* ── Expert / guardrails (collapsed) ──────────────────────── */}
+        <DisclosureSection title="Safety & guardrails" level="expert">
+          <label className="flex items-center justify-between gap-3 cursor-pointer py-1">
+            <span>
+              <span className="text-sm font-medium">Prompt-injection scan</span>
+              <span className="block text-xs text-muted-foreground">Detect and block malicious instructions hidden in inputs.</span>
+            </span>
+            <input type="checkbox" checked={promptInjectionScan} onChange={e => setPromptInjectionScan(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-primary" />
+          </label>
+          <label className="flex items-center justify-between gap-3 cursor-pointer py-1">
+            <span>
+              <span className="text-sm font-medium">Mask PII</span>
+              <span className="block text-xs text-muted-foreground">Redact personal data before it reaches the model.</span>
+            </span>
+            <input type="checkbox" checked={piiMask} onChange={e => setPiiMask(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-primary" />
+          </label>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" htmlFor="maxCost">Max cost per run (USD)</label>
+            <input id="maxCost" type="number" min="0" step="0.1" value={maxCost} onChange={e => setMaxCost(e.target.value)}
+              className={inputCls} />
+            <p className="text-xs text-muted-foreground mt-1">The agent stops a run if it would exceed this budget.</p>
+          </div>
+        </DisclosureSection>
+
         <div className="flex gap-3 pt-2">
           <Link href="/app/agents" className="flex-1 text-center border border-border px-4 py-2.5 rounded-lg text-sm hover:bg-muted transition-colors">
             Cancel

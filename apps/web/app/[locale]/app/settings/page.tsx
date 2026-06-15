@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
-import { User, Building, Plug, Shield, CreditCard, Palette, Bell } from 'lucide-react';
+import Link from 'next/link';
+import { Building, Users, Mail, Plug, SlidersHorizontal, Activity } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Settings' };
 
+// Each section links to a destination that actually exists — no dead ends.
 const sections = [
-  { icon: User, label: 'Profile', desc: 'Manage your name, email, and password' },
-  { icon: Building, label: 'Organization', desc: 'Organization name, slug, and branding' },
-  { icon: Plug, label: 'Connectors', desc: 'Connect social accounts and third-party tools' },
-  { icon: Shield, label: 'Security', desc: 'API keys, 2FA, and session management' },
-  { icon: CreditCard, label: 'Billing', desc: 'Plan, usage, and invoices' },
-  { icon: Palette, label: 'Appearance', desc: 'Theme, language, and display preferences' },
-  { icon: Bell, label: 'Notifications', desc: 'Email and in-app notification settings' },
+  { icon: Building, label: 'Organization', desc: 'Workspace name, slug, and branding', href: '/app/admin/workspace' },
+  { icon: Users, label: 'Team & members', desc: 'Invite, manage roles, and deactivate members', href: '/app/admin/members' },
+  { icon: Mail, label: 'Invitations', desc: 'Pending invites to your workspace', href: '/app/admin/invitations' },
+  { icon: Plug, label: 'Connectors', desc: 'Connect social accounts and third-party tools', href: '/app/connectors' },
+  { icon: SlidersHorizontal, label: 'Advanced', desc: 'API keys, security, and power-user settings', href: '/app/admin/advanced' },
+  { icon: Activity, label: 'System health', desc: 'Database, cache, and provider status', href: '/app/admin/system' },
 ];
 
 export default function SettingsPage() {
@@ -22,7 +23,7 @@ export default function SettingsPage() {
       </div>
       <div className="space-y-2">
         {sections.map((s) => (
-          <button key={s.label}
+          <Link key={s.label} href={s.href}
             className="w-full flex items-center gap-4 p-4 border border-border rounded-xl text-left hover:border-primary/40 hover:bg-muted/50 transition-colors group">
             <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
               <s.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -32,7 +33,7 @@ export default function SettingsPage() {
               <div className="text-xs text-muted-foreground">{s.desc}</div>
             </div>
             <span className="ml-auto text-muted-foreground group-hover:text-foreground">→</span>
-          </button>
+          </Link>
         ))}
       </div>
     </div>

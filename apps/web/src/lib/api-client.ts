@@ -111,7 +111,12 @@ export interface Workspace { id: string; organizationId: string; name: string; s
 export const agentsApi = {
   list:           () => api.get<{ items: Agent[]; nextCursor: string | null }>('/v1/agents'),
   get:            (id: string) => api.get<Agent>(`/v1/agents/${id}`),
-  create:         (input: { name: string; role: string; goal?: string; costTier?: string; mode?: string }) =>
+  create:         (input: {
+                    name: string; role: string; goal?: string;
+                    systemPrompt?: string; defaultModel?: string;
+                    costTier?: string; mode?: string;
+                    guardrails?: { piiMask?: boolean; promptInjectionScan?: boolean; maxCostUsdPerRun?: number };
+                  }) =>
                     api.post<Agent>('/v1/agents', input),
   hire:           (input: { name: string; role: string; goal?: string; systemPrompt?: string; costTier?: string; avatar?: string; isRouter?: boolean; routingKeywords?: string[] }) =>
                     api.post<Agent>('/v1/agents/hire', input),
